@@ -42,3 +42,4 @@ bin/*
 *.ide-shm
 *.ide-wal
 *.config
+.idea

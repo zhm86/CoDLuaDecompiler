@@ -47,6 +47,7 @@
     <Compile Include="CFG\AbstractGraph.cs" />
     <Compile Include="CFG\BasicBlock.cs" />
     <Compile Include="CFG\LoopType.cs" />
+    <Compile Include="ExtensionMethods\IOExtensions.cs" />
     <Compile Include="IR\Assignment.cs" />
     <Compile Include="IR\Break.cs" />
     <Compile Include="IR\Continue.cs" />
@@ -66,7 +67,17 @@
     <Compile Include="IR\SymbolTable.cs" />
     <Compile Include="IR\While.cs" />
     <Compile Include="LuaDisassembler.cs" />
-    <Compile Include="LuaFile.cs" />
+    <Compile Include="LuaFile_old.cs" />
+    <Compile Include="LuaFileTypes\LuaFileBase.cs" />
+    <Compile Include="LuaFileTypes\LuaFileT7.cs" />
+    <Compile Include="LuaFileTypes\Structures\Constant.cs" />
+    <Compile Include="LuaFileTypes\Structures\ConstantType.cs" />
+    <Compile Include="LuaFileTypes\Structures\FileHeader.cs" />
+    <Compile Include="LuaFileTypes\Structures\Function.cs" />
+    <Compile Include="LuaFileTypes\Structures\Instruction.cs" />
+    <Compile Include="LuaFileTypes\Structures\Local.cs" />
+    <Compile Include="LuaFileTypes\Structures\LuaOpCode.cs" />
+    <Compile Include="LuaFileTypes\Structures\Upvalue.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -79,6 +90,5 @@
       <Name>SoulsFormats</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

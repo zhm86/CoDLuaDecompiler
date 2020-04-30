@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
+using DSLuaDecompiler.LuaFileTypes.Structures;
 
 namespace luadec.IR
 {
@@ -58,7 +59,7 @@ namespace luadec.IR
         public static int DebugIDCounter = 0;
         public int DebugID = 0;
 
-        public List<LuaFile.Local> ArgumentNames = null;
+        public List<Local> ArgumentNames = null;
 
         public bool IsVarargs = false;
 

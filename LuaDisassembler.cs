@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DSLuaDecompiler.LuaFileTypes;
+using DSLuaDecompiler.LuaFileTypes.Structures;
 using SoulsFormats;
 
 namespace luadec
@@ -305,7 +307,7 @@ namespace luadec
 
         public static IR.SymbolTable SymbolTable = new IR.SymbolTable();
 
-        private static string RK(LuaFile.Function fun, uint val)
+        private static string RK(Function fun, uint val)
         {
             if (val < 250)
             {
@@ -313,11 +315,11 @@ namespace luadec
             }
             else
             {
-                return fun.Constants[val - 250].ToString();
+                return fun.Constants[(int) (val - 250)].ToString();
             }
         }
 
-        private static IR.Expression RKIR(LuaFile.Function fun, uint val)
+        private static IR.Expression RKIR(Function fun, uint val)
         {
             if (val < 250)
             {
@@ -325,11 +327,11 @@ namespace luadec
             }
             else
             {
-                return ToConstantIR(fun.Constants[val - 250]);
+                return ToConstantIR(fun.Constants[(int) (val - 250)]);
             }
         }
 
-        private static IR.Expression RKIRHKS(LuaFile.Function fun, int val, bool szero)
+        private static IR.Expression RKIRHKS(Function fun, uint val, bool szero)
         {
             if (val >= 0 && !szero)
             {
@@ -337,11 +339,11 @@ namespace luadec
             }
             else if (szero)
             {
-                return ToConstantIR(fun.ConstantsHKS[val]);
+                return ToConstantIR(fun.Constants[(int) val]);
             }
             else
             {
-                return ToConstantIR(fun.ConstantsHKS[-val]);
+                return ToConstantIR(fun.Constants[(int) -val]);
             }
         }
 
@@ -350,10 +352,10 @@ namespace luadec
             return new IR.IdentifierReference(SymbolTable.GetRegister((uint)reg));
         }
 
-        public static void DisassembleFunction(LuaFile.Function fun)
+        /*public static void DisassembleFunction(Function fun)
         {
             Console.WriteLine($@"Constants:");
-            for (int i = 0; i < fun.Constants.Length; i++)
+            for (int i = 0; i < fun.Constants.Count; i++)
             {
                 Console.WriteLine($@"{i}: {fun.Constants[i].ToString()}");
             }
@@ -458,7 +460,7 @@ namespace luadec
                         break;
                     case Lua502Ops.OpClosure:
                         args = "";
-                        for (int arg = (int)a; arg < a + fun.ChildFunctions[bx].NumParams; arg++)
+                        for (int arg = (int)a; arg < a + fun.ChildFunctions[bx].ParameterCount; arg++)
                         {
                             args += ", ";
                             args += $@"R({arg})";
@@ -483,71 +485,76 @@ namespace luadec
             }
 
             Console.WriteLine("\nClosures {");
-            for (int i = 0; i < fun.ChildFunctions.Length; i++)
+            for (int i = 0; i < fun.ChildFunctions.Count; i++)
             {
                 Console.WriteLine($@"Closure {i}:");
                 DisassembleFunction(fun.ChildFunctions[i]);
             }
             Console.WriteLine("}");
-        }
+        }*/
 
-        private static IR.Constant ToConstantIR(LuaFile.Constant con)
+        /*private static IR.Constant ToConstantIR(Constant con)
         {
-            if (con.Type == LuaFile.Constant.ConstantType.TypeNumber)
+            if (con.Type == ConstantType.TNumber)
             {
                 return new IR.Constant(con.NumberValue);
             }
-            else if (con.Type == LuaFile.Constant.ConstantType.TypeString)
+            else if (con.Type == ConstantType.TString)
             {
                 return new IR.Constant(con.StringValue);
             }
             return new IR.Constant(IR.Constant.ConstantType.ConstNil);
-        }
+        }*/
 
-        private static IR.Constant ToConstantIR(LuaFile.ConstantHKS con)
+        private static IR.Constant ToConstantIR(Constant con)
         {
-            if (con.Type == LuaFile.ConstantHKS.ConstantType.TypeNumber)
+            if (con.Type == ConstantType.TNumber)
             {
                 return new IR.Constant(con.NumberValue);
             }
-            else if (con.Type == LuaFile.ConstantHKS.ConstantType.TypeString)
+            else if (con.Type == ConstantType.TString)
             {
                 return new IR.Constant(con.StringValue);
             }
-            else if (con.Type == LuaFile.ConstantHKS.ConstantType.TypeBoolean)
+            else if (con.Type == ConstantType.TBoolean)
             {
                 return new IR.Constant(con.BoolValue);
             }
             return new IR.Constant(IR.Constant.ConstantType.ConstNil);
         }
 
-        public static void GenerateIR50(IR.Function irfun, LuaFile.Function fun)
+        public static void GenerateIR50(IR.Function irfun, Function fun)
         {
             // First register closures for all the children
-            for (int i = 0; i < fun.ChildFunctions.Length; i++)
+            for (int i = 0; i < fun.ChildFunctions.Count; i++)
             {
                 irfun.AddClosure(new IR.Function());
             }
 
             SymbolTable.BeginScope();
             var parameters = new List<IR.Identifier>();
-            for (uint i = 0; i < fun.NumParams; i++)
+            for (uint i = 0; i < fun.ParameterCount; i++)
             {
                 parameters.Add(SymbolTable.GetRegister(i));
             }
             irfun.SetParameters(parameters);
 
-            BinaryReaderEx br = new BinaryReaderEx(false, fun.Bytecode);
-            for (int i = 0; i < fun.Bytecode.Length; i += 4)
+            for (int i = 0; i < fun.Instructions.Count * 4; i += 4)
             {
-                uint instruction = br.ReadUInt32();
-                uint opcode = instruction & 0x3F;
-                uint a = instruction >> 24;
-                uint b = (instruction >> 15) & 0x1FF;
-                uint c = (instruction >> 6) & 0x1FF;
-                uint bx = (instruction >> 6) & 0x3FFFF;
-                int sbx = ((int)bx - (((1 << 18) - 1) >> 1));
-                int pc = i / 4;
+                var instruction = fun.Instructions[i / 4];
+                //uint opcode = instruction & 0x3F;
+                // Uhhh thanks again hork
+                var opcode = instruction.OpCode;
+                var a = instruction.A;
+                var c = instruction.C;
+                var b = instruction.B;
+                var szero = instruction.ExtraCBit;
+
+                var bx = instruction.Bx;
+                var sbx = instruction.SBx;
+                uint addr;
+                var pc = i / 4;
+                
                 List<IR.Expression> args = null;
                 List<IR.IInstruction> instructions = new List<IR.IInstruction>();
                 IR.Assignment assn;
@@ -561,7 +568,7 @@ namespace luadec
                         break;
                     case Lua502Ops.OpLoadK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {fun.Constants[b].ToString()}")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[bx]));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[(int) bx]));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
@@ -588,7 +595,7 @@ namespace luadec
                         var up = SymbolTable.GetUpvalue(b);
                         if (fun.Upvalues.Count() > 0 && !up.UpvalueResolved)
                         {
-                            up.Name = fun.Upvalues[b].Name;
+                            up.Name = fun.Upvalues[(int) b].Name;
                             up.UpvalueResolved = true;
                         }
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(up));
@@ -597,7 +604,7 @@ namespace luadec
                         break;
                     case Lua502Ops.OpGetGlobal:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := Gbl[{fun.Constants[bx].ToString()}]")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetGlobal(fun.Constants[bx].ToString())));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetGlobal(fun.Constants[(int) bx].ToString())));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
@@ -609,13 +616,13 @@ namespace luadec
                         break;
                     case Lua502Ops.OpSetGlobal:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"Gbl[{fun.Constants[bx].ToString()}] := R({a})")));
-                        instructions.Add(new IR.Assignment(SymbolTable.GetGlobal(fun.Constants[bx].ToString()), new IR.IdentifierReference(SymbolTable.GetRegister(a))));
+                        instructions.Add(new IR.Assignment(SymbolTable.GetGlobal(fun.Constants[(int) bx].ToString()), new IR.IdentifierReference(SymbolTable.GetRegister(a))));
                         break;
                     case Lua502Ops.OpSetUpVal:
                         var up2 = SymbolTable.GetUpvalue(b);
                         if (fun.Upvalues.Count() > 0 && !up2.UpvalueResolved)
                         {
-                            up2.Name = fun.Upvalues[b].Name;
+                            up2.Name = fun.Upvalues[(int) b].Name;
                             up2.UpvalueResolved = true;
                         }
                         instructions.Add(new IR.Assignment(up2, new IR.IdentifierReference(SymbolTable.GetRegister(a))));
@@ -821,19 +828,19 @@ namespace luadec
                         instructions.Add(assn);
                         break;
                     default:
-                        switch (OpProperties502[opcode].OpMode)
+                        switch (OpProperties502[(int) opcode].OpMode)
                         {
                             case OpMode.IABC:
-                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpProperties502[opcode].OpName} {instruction >> 24} {(instruction >> 15) & 0x1FF} {(instruction >> 6) & 0x1FF}")));
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpProperties502[(int) opcode].OpName} {a} {b} {c}")));
                                 break;
                             case OpMode.IABx:
-                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpProperties502[opcode].OpName} {instruction >> 24} {(instruction >> 6) & 0x3FFFF}")));
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpProperties502[(int) opcode].OpName} {a} {bx}")));
                                 break;
                             case OpMode.IAsBx:
-                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpProperties502[opcode].OpName} {instruction >> 24} {(instruction >> 6) & 0x3FFFF}")));
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpProperties502[(int) opcode].OpName} {a} {sbx}")));
                                 break;
                         }
-                        throw new Exception($@"Unimplemented opcode {OpProperties502[opcode].OpName}");
+                        throw new Exception($@"Unimplemented opcode {OpProperties502[(int) opcode].OpName}");
                         break;
                 }
                 foreach (var inst in instructions)
@@ -914,7 +921,7 @@ namespace luadec
             irfun.ConvertToAST(true);
 
             // Now generate IR for all the child closures
-            for (int i = 0; i < fun.ChildFunctions.Length; i++)
+            for (int i = 0; i < fun.ChildFunctions.Count; i++)
             {
                 //if (i == 49)
                 {
@@ -924,92 +931,67 @@ namespace luadec
             SymbolTable.EndScope();
         }
 
-        private static void CheckLocal(IR.Assignment a, LuaFile.Function fun, int index)
+        private static void CheckLocal(IR.Assignment a, Function fun, int index)
         {
             a.LocalAssignments = fun.LocalsAt(index + 1);
         }
 
-        private static void CheckLocal(IR.Data d, LuaFile.Function fun, int index)
+        private static void CheckLocal(IR.Data d, Function fun, int index)
         {
             d.Locals = fun.LocalsAt(index + 1);
         }
 
-        public static void GenerateIRHKS(IR.Function irfun, LuaFile.Function fun)
+        public static void GenerateIRHKS(IR.Function irfun, Function fun)
         {
             // First register closures for all the children
-            for (int i = 0; i < fun.ChildFunctions.Length; i++)
+            for (int i = 0; i < fun.ChildFunctions.Count; i++)
             {
                 irfun.AddClosure(new IR.Function());
             }
 
             SymbolTable.BeginScope();
             var parameters = new List<IR.Identifier>();
-            for (uint i = 0; i < fun.NumParams; i++)
+            for (uint i = 0; i < fun.ParameterCount; i++)
             {
                 parameters.Add(SymbolTable.GetRegister(i));
             }
             irfun.SetParameters(parameters);
 
-            BinaryReaderEx br = new BinaryReaderEx(false, fun.Bytecode);
-            br.BigEndian = true;
-            for (int i = 0; i < fun.Bytecode.Length; i += 4)
+            for (int i = 0; i < fun.Instructions.Count * 4; i += 4)
             {
-                uint instruction = br.ReadUInt32();
+                var instruction = fun.Instructions[i / 4];
                 //uint opcode = instruction & 0x3F;
                 // Uhhh thanks again hork
-                uint opcode = (instruction & 0xFF000000) >> 25;
-                uint a = instruction & 0xFF;
-                int c = (int)(instruction & 0x1FF00) >> 8;
-                int b = (int)(instruction & 0x1FE0000) >> 17;
-                bool szero = false;
-                int pc = i / 4;
+                var opcode = instruction.OpCode;
+                var a = instruction.A;
+                var c = instruction.C;
+                var b = instruction.B;
+                var szero = instruction.ExtraCBit;
 
-                if ((b & 0x100) > 0)
-                {
-                    b = -(b & 0xFF);
-                }
-                if ((c & 0x100) > 0)
-                {
-                    if (c == 0x100)
-                    {
-                        szero = true;
-                    }
-                    c = -(c & 0xFF);
-                }
-
-                uint bx = (instruction & 0x1FFFF00) >> 8;
-                int sbx = (int)bx;
+                var bx = instruction.Bx;
+                var sbx = instruction.SBx;
                 uint addr;
-                /*if ((bx & 0x10000) == 0)
-                {
-                    sbx = (sbx << 16) >> 16; // ???
-                    //sbx = -(sbx & 0xFFFF);
-                }
-                else
-                {
-                    // WTF
-                    sbx = (sbx & 0xFFFF);
-                }*/
-                //int sbx = (instruction & 0x1FFFF00) >> 8;
+                var pc = i / 4;
+                
                 List<IR.Expression> args = null;
                 List<IR.IdentifierReference> rets = null;
                 List<IR.IInstruction> instructions = new List<IR.IInstruction>();
                 IR.Assignment assn;
-                switch ((LuaHKSOps)opcode)
+                switch (opcode)
                 {
-                    case LuaHKSOps.OpMove:
+                    case LuaOpCode.HKS_OPCODE_MOVE:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := R({b})")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), Register((uint)b));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpLoadK:
+                    case LuaOpCode.HKS_OPCODE_LOADK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {fun.Constants[b].ToString()}")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), ToConstantIR(fun.ConstantsHKS[bx]));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[(int) bx]));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpLoadBool:
+                    case LuaOpCode.HKS_OPCODE_LOADBOOL:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := (Bool){b}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.Constant(b == 1));
                         assn.NilAssignmentReg = a;
@@ -1021,7 +1003,7 @@ namespace luadec
                             instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2))));
                         }
                         break;
-                    case LuaHKSOps.OpLoadNil:
+                    case LuaOpCode.HKS_OPCODE_LOADNIL:
                         var nlist = new List<IR.IdentifierReference>();
                         for (int arg = (int)a; arg <= b; arg++)
                         {
@@ -1032,127 +1014,138 @@ namespace luadec
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpGetUpVal:
+                    case LuaOpCode.HKS_OPCODE_GETUPVAL:
                         var up = SymbolTable.GetUpvalue((uint)b);
                         if (fun.Upvalues.Count() > 0 && !up.UpvalueResolved)
                         {
-                            up.Name = fun.Upvalues[b].Name;
+                            up.Name = fun.Upvalues[(int) b].Name;
                             up.UpvalueResolved = true;
                         }
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(up)));
                         break;
-                    case LuaHKSOps.OpGetGlobalMem:
-                    case LuaHKSOps.OpGetGlobal:
+                    case LuaOpCode.HKS_OPCODE_GETGLOBAL_MEM:
+                    case LuaOpCode.HKS_OPCODE_GETGLOBAL:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := Gbl[{fun.Constants[bx].ToString()}]")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetGlobal(fun.ConstantsHKS[bx].ToString())));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetGlobal(fun.Constants[(int) bx].ToString())));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpGetTableS:
-                    case LuaHKSOps.OpGetTable:
+                    case LuaOpCode.HKS_OPCODE_GETTABLE_S:
+                    case LuaOpCode.HKS_OPCODE_GETTABLE:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := R({b})[{RK(fun, c)}]")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetRegister((uint)b), RKIRHKS(fun, c, szero)));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpSetGlobal:
+                    case LuaOpCode.HKS_OPCODE_SETGLOBAL:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"Gbl[{fun.Constants[bx].ToString()}] := R({a})")));
-                        instructions.Add(new IR.Assignment(SymbolTable.GetGlobal(fun.ConstantsHKS[bx].ToString()), new IR.IdentifierReference(SymbolTable.GetRegister(a))));
+                        instructions.Add(new IR.Assignment(SymbolTable.GetGlobal(fun.Constants[(int) bx].ToString()), new IR.IdentifierReference(SymbolTable.GetRegister(a))));
                         break;
-                    case LuaHKSOps.OpNewTable:
+                    case LuaOpCode.HKS_OPCODE_NEWTABLE:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {{}} size = {b}, {c}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.InitializerList(new List<IR.Expression>()));
                         assn.VarargAssignmentReg = a;
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    
-                    case LuaHKSOps.OpSelf:
+                    case LuaOpCode.HKS_OPCODE_SELF:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a + 1}) := R({b})")));
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a + 1), Register((uint)b)));
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := R({b})[{RK(fun, c)}]")));
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetRegister((uint)b), RKIRHKS(fun, c, szero))));
                         break;
-                    case LuaHKSOps.OpAdd:
+                    case LuaOpCode.HKS_OPCODE_ADD:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} + {RK(fun, c)}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpAdd));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpAddBk:
+                    case LuaOpCode.HKS_OPCODE_ADD_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} + {RK(fun, c)}")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpAdd));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpAdd));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpSub:
+                    case LuaOpCode.HKS_OPCODE_SUB:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} - {RK(fun, c)}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpSub));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpSubBk:
+                    case LuaOpCode.HKS_OPCODE_SUB_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} - {RK(fun, c)}")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpSub));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpSub));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpMul:
+                    case LuaOpCode.HKS_OPCODE_MUL:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} * {RK(fun, c)}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpMul));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpMulBk:
+                    case LuaOpCode.HKS_OPCODE_MUL_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} * {RK(fun, c)}")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpMul));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpMul));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpDiv:
+                    case LuaOpCode.HKS_OPCODE_DIV:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} / {RK(fun, c)}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpDiv));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpMod:
+                    case LuaOpCode.HKS_OPCODE_DIV_BK:
+                        //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} * {RK(fun, c)}")));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpDiv));
+                        CheckLocal(assn, fun, pc);
+                        instructions.Add(assn);
+                        break;
+                    case LuaOpCode.HKS_OPCODE_MOD:
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpMod));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpPow:
+                    case LuaOpCode.HKS_OPCODE_MOD_BK:
+                        //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} * {RK(fun, c)}")));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpMod));
+                        CheckLocal(assn, fun, pc);
+                        instructions.Add(assn);
+                        break;
+                    case LuaOpCode.HKS_OPCODE_POW:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} ^ {RK(fun, c)}")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpPow));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpPowBk:
+                    case LuaOpCode.HKS_OPCODE_POW_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := {RK(fun, b)} * {RK(fun, c)}")));
-                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpPow));
+                        assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpPow));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpUnm:
+                    case LuaOpCode.HKS_OPCODE_UNM:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := -R({b})")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a),
                             new IR.UnaryOp(new IR.IdentifierReference(SymbolTable.GetRegister((uint)b)), IR.UnaryOp.OperationType.OpNegate));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpNot:
+                    case LuaOpCode.HKS_OPCODE_NOT:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := not R({b})")));
                         assn = new IR.Assignment(SymbolTable.GetRegister(a),
                             new IR.UnaryOp(new IR.IdentifierReference(SymbolTable.GetRegister((uint)b)), IR.UnaryOp.OperationType.OpNot));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpLen:
+                    case LuaOpCode.HKS_OPCODE_LEN:
                         assn = new IR.Assignment(SymbolTable.GetRegister(a),
                             new IR.UnaryOp(new IR.IdentifierReference(SymbolTable.GetRegister((uint)b)), IR.UnaryOp.OperationType.OpLength));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpConcat:
+                    case LuaOpCode.HKS_OPCODE_CONCAT:
                         args = new List<IR.Expression>();
                         for (int arg = (int)b; arg <= c; arg++)
                         {
@@ -1163,7 +1156,7 @@ namespace luadec
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpJmp:
+                    case LuaOpCode.HKS_OPCODE_JMP:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"PC += {sbx}")));
                         addr = (uint)((i / 4) + 2 + ((sbx << 16) >> 16));
                         if ((sbx & 0x10000) != 0)
@@ -1171,9 +1164,9 @@ namespace luadec
                             // Unsigned address?
                             addr = (uint)((sbx & 0xFFFF) + 2 + (uint)(i / 4));
                         }
-                        instructions.Add(new IR.Jump(irfun.GetLabel(addr)));
+                        instructions.Add(new IR.Jump(irfun.GetLabel((uint) (pc + 1 + sbx))));
                         break;
-                    case LuaHKSOps.OpEq:
+                    case LuaOpCode.HKS_OPCODE_EQ:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (({RK(fun, b)} == {RK(fun, c)}) ~= {a}) PC++")));
                         if (a == 0)
                         {
@@ -1184,7 +1177,7 @@ namespace luadec
                             instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpNotEqual)));
                         }
                         break;
-                    case LuaHKSOps.OpLt:
+                    case LuaOpCode.HKS_OPCODE_LT:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (({RK(fun, b)} < {RK(fun, c)}) ~= {a}) PC++")));
                         if (a == 0)
                         {
@@ -1195,18 +1188,18 @@ namespace luadec
                             instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpGreaterEqual)));
                         }
                         break;
-                    case LuaHKSOps.OpLtBk:
+                    case LuaOpCode.HKS_OPCODE_LT_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (({RK(fun, b)} < {RK(fun, c)}) ~= {a}) PC++")));
                         if (a == 0)
                         {
-                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpLessThan)));
+                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpLessThan)));
                         }
                         else
                         {
-                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpGreaterEqual)));
+                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpGreaterEqual)));
                         }
                         break;
-                    case LuaHKSOps.OpLe:
+                    case LuaOpCode.HKS_OPCODE_LE:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (({RK(fun, b)} <= {RK(fun, c)}) ~= {a}) PC++")));
                         if (a == 0)
                         {
@@ -1217,19 +1210,19 @@ namespace luadec
                             instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpGreaterThan)));
                         }
                         break;
-                    case LuaHKSOps.OpLeBk:
+                    case LuaOpCode.HKS_OPCODE_LE_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (({RK(fun, b)} <= {RK(fun, c)}) ~= {a}) PC++")));
                         if (a == 0)
                         {
-                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpLessEqual)));
+                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpLessEqual)));
                         }
                         else
                         {
-                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.ConstantsHKS[b]), Register((uint)c), IR.BinOp.OperationType.OpGreaterThan)));
+                            instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), IR.BinOp.OperationType.OpGreaterThan)));
                         }
                         break;
-                    case LuaHKSOps.OpTest:
-                    case LuaHKSOps.OpTestR1:
+                    case LuaOpCode.HKS_OPCODE_TEST:
+                    case LuaOpCode.HKS_OPCODE_TEST_R1:
                         // This op is weird
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (R({b}) <=> {c}) then R({a}) := R({b}) else PC++")));
                         if (c == 0)
@@ -1256,12 +1249,13 @@ namespace luadec
                         }
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetRegister(b))));
                         break;*/
-                    case LuaHKSOps.OpSetTableS:
-                    case LuaHKSOps.OpSetTable:
+                    case LuaOpCode.HKS_OPCODE_SETTABLE:
+                    case LuaOpCode.HKS_OPCODE_SETTABLE_S:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a})[{RK(fun, b)}] := R({c})")));
-                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), RKIRHKS(fun, b, false)), RKIRHKS(fun, c, false)));
+                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), Register(b)), RKIRHKS(fun, c, false)));
                         break;
-                    case LuaHKSOps.OpTailCallI:
+                    case LuaOpCode.HKS_OPCODE_TAILCALL:
+                    case LuaOpCode.HKS_OPCODE_TAILCALL_I:
                         args = new List<IR.Expression>();
                         for (int arg = (int)a + 1; arg < a + b; arg++)
                         {
@@ -1270,22 +1264,22 @@ namespace luadec
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := R({a})({args})")));
                         instructions.Add(new IR.Return(new IR.FunctionCall(new IR.IdentifierReference(SymbolTable.GetRegister(a)), args)));
                         break;
-                    case LuaHKSOps.OpSetTableSBK:
+                    case LuaOpCode.HKS_OPCODE_SETTABLE_S_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a})[{RK(fun, b)}] := R({c})")));
-                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), ToConstantIR(fun.ConstantsHKS[b])), RKIRHKS(fun, c, false)));
+                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[(int) b])), RKIRHKS(fun, c, false)));
                         break;
-                    case LuaHKSOps.OpCallI:
-                    case LuaHKSOps.OpCallIR1:
-                    case LuaHKSOps.OpCall:
+                    case LuaOpCode.HKS_OPCODE_CALL_I:
+                    case LuaOpCode.HKS_OPCODE_CALL_I_R1:
+                    case LuaOpCode.HKS_OPCODE_CALL:
                         args = new List<IR.Expression>();
                         rets = new List<IR.IdentifierReference>();
                         for (int arg = (int)a + 1; arg < a + b; arg++)
                         {
                             args.Add(new IR.IdentifierReference(SymbolTable.GetRegister((uint)arg)));
                         }
-                        for (int r = (int)a; r <= a + c - 2; r++)
+                        for (int r = (int)a + 1; r < a + c; r++)
                         {
-                            rets.Add(new IR.IdentifierReference(SymbolTable.GetRegister((uint)r)));
+                            rets.Add(new IR.IdentifierReference(SymbolTable.GetRegister((uint)r - 1)));
                         }
                         if (c == 0)
                         {
@@ -1309,7 +1303,7 @@ namespace luadec
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := R({a})({args})")));
                         instructions.Add(new IR.Return(new IR.FunctionCall(new IR.IdentifierReference(SymbolTable.GetRegister(a)), args)));
                         break;*/
-                    case LuaHKSOps.OpReturn:
+                    case LuaOpCode.HKS_OPCODE_RETURN:
                         args = new List<IR.Expression>();
                         if (b != 0)
                         {
@@ -1327,7 +1321,7 @@ namespace luadec
                         instructions.Add(ret);
                         //instructions.Add(new IR.PlaceholderInstruction(($@"return {args}")));
                         break;
-                    case LuaHKSOps.OpForLoop:
+                    case LuaOpCode.HKS_OPCODE_FORLOOP:
                         addr = (uint)((i / 4) + 2 + ((sbx << 16) >> 16));
                         if ((sbx & 0x10000) != 0)
                         {
@@ -1336,14 +1330,14 @@ namespace luadec
                         }
                         instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a)), new IR.BinOp(new IR.IdentifierReference(SymbolTable.GetRegister(a)),
                             new IR.IdentifierReference(SymbolTable.GetRegister(a + 2)), IR.BinOp.OperationType.OpAdd)));
-                        var jmp = new IR.Jump(irfun.GetLabel(addr), new IR.BinOp(new IR.IdentifierReference(SymbolTable.GetRegister(a)),
+                        var jmp = new IR.Jump(irfun.GetLabel((uint) (pc + 1 + sbx)), new IR.BinOp(new IR.IdentifierReference(SymbolTable.GetRegister(a)),
                             new IR.IdentifierReference(SymbolTable.GetRegister(a + 1)), IR.BinOp.OperationType.OpLoopCompare));
                         var pta = new IR.Assignment(SymbolTable.GetRegister(a + 3), Register((uint)a));
                         pta.PropogateAlways = true;
                         jmp.PostTakenAssignment = pta;
                         instructions.Add(jmp);
                         break;
-                    case LuaHKSOps.OpTForLoop:
+                    case LuaOpCode.HKS_OPCODE_TFORLOOP:
                         args = new List<IR.Expression>();
                         rets = new List<IR.IdentifierReference>();
                         args.Add(new IR.IdentifierReference(SymbolTable.GetRegister((uint)a + 1)));
@@ -1368,7 +1362,7 @@ namespace luadec
                         instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(Register((uint)a + 3), new IR.Constant(IR.Constant.ConstantType.ConstNil), IR.BinOp.OperationType.OpEqual)));
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a + 2), new IR.IdentifierReference(SymbolTable.GetRegister(a + 3))));
                         break;
-                    case LuaHKSOps.OpForPrep:
+                    case LuaOpCode.HKS_OPCODE_FORPREP:
                         addr = (uint)((i / 4) + 2 + ((sbx << 16) >> 16));
                         if ((sbx & 0x10000) != 0)
                         {
@@ -1378,9 +1372,9 @@ namespace luadec
                         // The VM technically does a subtract, but we don't actually emit it since it simplifies things to map better to the high level Lua
                         //instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a)), new IR.BinOp(new IR.IdentifierReference(SymbolTable.GetRegister(a)),
                         //    new IR.IdentifierReference(SymbolTable.GetRegister(a + 2)), IR.BinOp.OperationType.OpSub)));
-                        instructions.Add(new IR.Jump(irfun.GetLabel(addr)));
+                        instructions.Add(new IR.Jump(irfun.GetLabel((uint) (pc + 1 + sbx))));
                         break;
-                    case LuaHKSOps.OpSetList:
+                    case LuaOpCode.HKS_OPCODE_SETLIST:
                         if (b == 0)
                         {
                             // Indeterminant assignment
@@ -1404,7 +1398,7 @@ namespace luadec
                             }
                         }
                         break;
-                    case LuaHKSOps.OpClosure:
+                    case LuaOpCode.HKS_OPCODE_CLOSURE:
                         //args = "";
                         //for (int arg = (int)a; arg < a + fun.ChildFunctions[bx].NumParams; arg++)
                         //{
@@ -1414,23 +1408,24 @@ namespace luadec
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a}) := closure(KPROTO[{bx}]{args})")));
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.Closure(irfun.LookupClosure(bx))));
                         break;
-                    case LuaHKSOps.OpGetField:
-                    case LuaHKSOps.OpGetFieldR1:
-                        assn = new IR.Assignment(Register((uint)a), new IR.IdentifierReference(SymbolTable.GetRegister((uint)b), new IR.Constant(fun.ConstantsHKS[c].ToString())));
+                    case LuaOpCode.HKS_OPCODE_GETFIELD:
+                    case LuaOpCode.HKS_OPCODE_GETFIELD_R1:
+                        assn = new IR.Assignment(Register((uint)a), new IR.IdentifierReference(SymbolTable.GetRegister((uint)b), new IR.Constant(fun.Constants[(int) c].ToString())));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpData:
+                    case LuaOpCode.HKS_OPCODE_DATA:
                         var dat = new IR.Data();
                         CheckLocal(dat, fun, pc);
                         instructions.Add(dat);
                         break;
-                    case LuaHKSOps.OpSetField:
-                        assn = new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), new IR.Constant(fun.ConstantsHKS[b].ToString())), Register((uint)c));
+                    case LuaOpCode.HKS_OPCODE_SETFIELD:
+                    case LuaOpCode.HKS_OPCODE_SETFIELD_R1:
+                        assn = new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), new IR.Constant(fun.Constants[(int) b].ToString())), Register((uint)c));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
-                    case LuaHKSOps.OpVarArg:
+                    case LuaOpCode.HKS_OPCODE_VARARG:
                         //instructions.Add(new IR.PlaceholderInstruction("VARARG"));
                         var vargs = new List<IR.IdentifierReference>();
                         for (int arg = (int)a; arg <= a + b - 1; arg++)
@@ -1452,20 +1447,23 @@ namespace luadec
                         irfun.IsVarargs = true;
                         break;
                     default:
-                        switch (OpPropertiesHKS[opcode].OpMode)
+                        switch (OpPropertiesHKS[(int) opcode].OpMode)
                         {
                             case OpMode.IABC:
-                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpPropertiesHKS[opcode].OpName} {a} {b} {c}")));
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{opcode} {a} {b} {c}")));
                                 break;
                             case OpMode.IABx:
-                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpPropertiesHKS[opcode].OpName} {a} {bx}")));
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{opcode} {a} {bx}")));
                                 break;
                             case OpMode.IAsBx:
-                                instructions.Add(new IR.PlaceholderInstruction(($@"{OpPropertiesHKS[opcode].OpName} {a} {(sbx & 0x10000) >> 16} {sbx & 0xFFFF}")));
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{opcode} {a} {sbx}")));
+                                break;
+                            default:
+                                instructions.Add(new IR.PlaceholderInstruction(($@"{opcode} {a} {b} {c}")));
                                 break;
                         }
-                        throw new Exception($@"Unimplemented opcode {OpPropertiesHKS[opcode].OpName}");
-                        if (OpPropertiesHKS[opcode].OpName == null)
+                        //throw new Exception($@"Unimplemented opcode {OpPropertiesHKS[(int) opcode].OpName}");
+                        if (OpPropertiesHKS[(int) opcode].OpName == null)
                         {
                             Console.WriteLine(opcode);
                         }
@@ -1523,17 +1521,14 @@ namespace luadec
             irfun.ConvertToAST(true);
 
             // Now generate IR for all the child closures
-            for (int i = 0; i < fun.ChildFunctions.Length; i++)
+            for (int i = 0; i < fun.ChildFunctions.Count; i++)
             {
                 //if (i != 2 && i != 8 && i != 30)
                 //if (i == 16)
                 //if (i == 26)
                 //if (i == 79)
                 //if (i == 11)
-                if (i != 0)
-                {
-                    GenerateIRHKS(irfun.LookupClosure((uint)i), fun.ChildFunctions[i]);
-                }
+                GenerateIRHKS(irfun.LookupClosure((uint)i), fun.ChildFunctions[i]);
             }
             SymbolTable.EndScope();
         }

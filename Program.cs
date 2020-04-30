@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+
+using System;
 using System.IO;
-using SoulsFormats;
 
 namespace luadec
 {
     class Program
     {
-        static void Main(string[] args)
+        /*static void Main(string[] args)
         {
             Encoding outEncoding = Encoding.UTF8;
             // Super bad arg parser until I decide to use a better libary
@@ -68,6 +65,26 @@ namespace luadec
                     Console.WriteLine(main.ToString());
                 }
             }
+        }*/
+        
+        static void Main(string[] args)
+        {
+            Console.WriteLine("CoD Havok Decompiler by JariK");
+
+            string fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\uieditor\actions.lua";
+            fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui_mp\t6\hud\loading.lua";
+            //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Release\t8_luafiles\LuaFile_1a3d1f301d13ce9.lua";
+            //fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\uieditor\widgets\aar\xpbarframe.lua";
+            //fileName = @"E:\modding_tools\hydra\hydrax_old\exported_files\ui\test.luac";
+            Console.WriteLine("Decompiling file: " + Path.GetFileName(fileName));
+            var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName, new MemoryStream(File.ReadAllBytes(fileName)));
+            
+            IR.Function main = new IR.Function();
+            LuaDisassembler.GenerateIRHKS(main, file.MainFunction);
+            
+            File.WriteAllText(@"E:\steam\steamapps\common\Call of Duty Black Ops III\mods\thegreatwar\ui\testdecompiled.lua", main.ToString());
+            
+            Console.WriteLine("Decompiling complete");
         }
     }
 }

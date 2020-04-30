@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DSLuaDecompiler.LuaFileTypes.Structures;
 
 namespace luadec.IR
 {
@@ -15,6 +16,6 @@ namespace luadec.IR
         /// <summary>
         /// Lua locals are often defined at the last data instruction
         /// </summary>
-        public List<LuaFile.Local> Locals = null;
+        public List<Local> Locals = null;
     }
 }

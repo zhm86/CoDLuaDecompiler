@@ -7,7 +7,7 @@ using SoulsFormats;
 
 namespace luadec
 {
-    public class LuaFile
+    public class LuaFile_old
     {
         public enum LuaVersion
         {
@@ -29,7 +29,8 @@ namespace luadec
                 }
                 else
                 {
-                    ret = br.ReadUTF8((int)length - 1);
+                    ret = br.ReadShiftJIS((int)length - 1);
+                    //ret = br.ReadUTF8((int)length - 1);
                 }
                 br.AssertByte(0); // Eat null terminator
                 return ret;
@@ -100,7 +101,7 @@ namespace luadec
             public string StringValue;
             public double NumberValue;
 
-            public Constant(LuaFile file, BinaryReaderEx br, LuaVersion version)
+            public Constant(LuaFile_old file, BinaryReaderEx br, LuaVersion version)
             {
                 byte type = br.ReadByte();
                 if (type == 3)
@@ -110,7 +111,7 @@ namespace luadec
                 }
                 else if (type == 4)
                 {
-                    StringValue = LuaFile.ReadLuaString(br, version);
+                    StringValue = LuaFile_old.ReadLuaString(br, version);
                     Type = ConstantType.TypeString;
                 }
                 else
@@ -157,7 +158,7 @@ namespace luadec
             public string StringValue;
             public float NumberValue;
 
-            public ConstantHKS(LuaFile file, BinaryReaderEx br)
+            public ConstantHKS(LuaFile_old file, BinaryReaderEx br)
             {
                 byte type = br.ReadByte();
                 if (type == 0)
@@ -176,7 +177,7 @@ namespace luadec
                 }
                 else if (type == 4)
                 {
-                    StringValue = LuaFile.ReadLuaString(br, LuaVersion.Lua51HKS);
+                    StringValue = LuaFile_old.ReadLuaString(br, LuaVersion.Lua51HKS);
                     Type = ConstantType.TypeString;
                 }
                 else
@@ -252,11 +253,11 @@ namespace luadec
             public Function[] ChildFunctions;
             public byte[] Bytecode;
 
-            public Function(LuaFile file, LuaVersion version, BinaryReaderEx br)
+            public Function(LuaFile_old file, LuaVersion version, BinaryReaderEx br)
             {
                 if (version == LuaVersion.Lua50)
                 {
-                    Name = LuaFile.ReadLuaString(br, version);
+                    Name = LuaFile_old.ReadLuaString(br, version);
                     LineDefined = br.ReadInt32();
                     Nups = br.ReadByte();
                     NumParams = br.ReadByte();
@@ -378,7 +379,7 @@ namespace luadec
         public Header LuaHeader;
         public Function MainFunction;
 
-        public LuaFile(BinaryReaderEx br)
+        public LuaFile_old(BinaryReaderEx br)
         {
             LuaHeader = new Header(br);
             Version = LuaHeader.LuaVersion;

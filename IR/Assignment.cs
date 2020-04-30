@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DSLuaDecompiler.LuaFileTypes.Structures;
 
 namespace luadec.IR
 {
@@ -21,7 +22,7 @@ namespace luadec.IR
         /// <summary>
         /// If debug info exist, these are the local variables that are assigned if any (null if none are assigned and thus a "temp")
         /// </summary>
-        public List<LuaFile.Local> LocalAssignments;
+        public List<Local> LocalAssignments;
         
         /// <summary>
         /// When this is set to true, the value defined by this is always expression/constant propogated, even if it's used more than once
