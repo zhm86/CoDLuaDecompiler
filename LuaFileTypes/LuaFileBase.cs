@@ -13,6 +13,7 @@ namespace DSLuaDecompiler.LuaFileTypes
         public FileHeader Header { get; set; }
         public Function MainFunction { get; set; }
         public abstract Dictionary<int, LuaOpCode> OpCodeTable { get; }
+        public abstract Action<luadec.IR.Function, Function> GenerateIR { get; set; }
         public abstract void ReadHeader();
         public abstract void ReadFunctions();
         public abstract void ReadFunctionHeader(Function function);

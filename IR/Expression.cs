@@ -211,7 +211,7 @@ namespace luadec.IR
             string ret = Identifier.ToString();
             foreach (var idx in TableIndices)
             {
-                if (DotNotation && idx is Constant c && c.ConstType == Constant.ConstantType.ConstString)
+                if (/*DotNotation &&*/ idx is Constant c && c.ConstType == Constant.ConstantType.ConstString)
                 {
                     ret = Identifier.ToString() + "." + c.String;
                 }

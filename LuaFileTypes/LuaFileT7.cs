@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using DSLuaDecompiler.LuaFileTypes.OpCodeTables;
 using DSLuaDecompiler.LuaFileTypes.Structures;
+using luadec;
 using PhilLibX.IO;
 
 namespace DSLuaDecompiler.LuaFileTypes
@@ -11,6 +12,7 @@ namespace DSLuaDecompiler.LuaFileTypes
     {
         public LuaFileT7(string filePath, BinaryReader stream) : base(filePath, stream) {}
         public override Dictionary<int, LuaOpCode> OpCodeTable => T7T8OpCodeTable.OpCodeTable;
+        public override Action<luadec.IR.Function, Function> GenerateIR { get; set; } = LuaDisassembler.GenerateIRHKS;
 
         public override void ReadHeader()
         {
@@ -32,13 +34,6 @@ namespace DSLuaDecompiler.LuaFileTypes
 
             for (int i = 0; i < Header.ConstantTypeCount; i++)
             {
-                /*ConstantTypes.Add(new ConstantType()
-                {
-                    Type = (ConstantType.Types)Reader.ReadInt32(),
-                    TypeLength = Reader.ReadInt32() - 1,
-                    TypeName = Reader.ReadNullTerminatedString()
-                });*/
-
                 var type = Reader.ReadInt32();
                 var strLength = Reader.ReadInt32();
                 Reader.ReadBytes(strLength);

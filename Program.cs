@@ -83,7 +83,7 @@ namespace luadec
             var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName, new MemoryStream(File.ReadAllBytes(fileName)));
             
             IR.Function main = new IR.Function();
-            LuaDisassembler.GenerateIRHKS(main, file.MainFunction);
+            file.GenerateIR(main, file.MainFunction);
             
             File.WriteAllText(@"E:\steam\steamapps\common\Call of Duty Black Ops III\mods\thegreatwar\ui\testdecompiled.lua", main.ToString());
             
