@@ -1235,8 +1235,8 @@ namespace luadec
                             //instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(Register((uint)a), new IR.Constant(IR.Constant.ConstantType.ConstNil), IR.BinOp.OperationType.OpEqual)));
                             instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.UnaryOp(Register((uint)a), IR.UnaryOp.OperationType.OpNot)));
                         }
-                        break;/*
-                    case LuaHKSOps.OpTest:
+                        break;
+                    case LuaOpCode.HKS_OPCODE_TESTSET:
                         // This op is weird
                         //instructions.Add(new IR.PlaceholderInstruction(($@"if (R({b}) <=> {c}) then R({a}) := R({b}) else PC++")));
                         if (c == 0)
@@ -1248,7 +1248,7 @@ namespace luadec
                             instructions.Add(new IR.Jump(irfun.GetLabel((uint)((i / 4) + 2)), new IR.BinOp(RKIR(fun, b), new IR.Constant(0.0), IR.BinOp.OperationType.OpEqual)));
                         }
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetRegister(b))));
-                        break;*/
+                        break;
                     case LuaOpCode.HKS_OPCODE_SETTABLE:
                     case LuaOpCode.HKS_OPCODE_SETTABLE_S:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a})[{RK(fun, b)}] := R({c})")));

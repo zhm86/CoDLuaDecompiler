@@ -49,16 +49,16 @@ namespace DSLuaDecompiler.LuaFileTypes
             
             // Check compiler version
             if(bytes[5] == 0x0D)
-                throw new NotImplementedException("Black Ops 2 lua isn't implemented yet");
+                return new LuaFileT6(filePath, reader);
             
             // Check if they use big endian
             if(bytes[6] == 0x00)
                 return new LuaFileDS(filePath, reader);
             
             if(bytes[12] == 0x03)
-                throw new NotImplementedException("Infinity Ward lua isn't implemented yet");
+                return new LuaFileIW(filePath, reader);
             
-            return new LuaFileT7(filePath, reader);
+            return new LuaFileT7T8(filePath, reader);
         }
         
         public byte GetBit(long input, int bit)

@@ -8,9 +8,9 @@ using PhilLibX.IO;
 
 namespace DSLuaDecompiler.LuaFileTypes
 {
-    public class LuaFileT7 : LuaFile
+    public class LuaFileT7T8 : LuaFile
     {
-        public LuaFileT7(string filePath, BinaryReader stream) : base(filePath, stream) {}
+        public LuaFileT7T8(string filePath, BinaryReader stream) : base(filePath, stream) {}
         public override Dictionary<int, LuaOpCode> OpCodeTable => T7T8OpCodeTable.OpCodeTable;
         public override Action<luadec.IR.Function, Function> GenerateIR { get; set; } = LuaDisassembler.GenerateIRHKS;
 

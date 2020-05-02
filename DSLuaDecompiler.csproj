@@ -68,11 +68,13 @@
     <Compile Include="IR\While.cs" />
     <Compile Include="LuaDisassembler.cs" />
     <Compile Include="LuaFileTypes\LuaFileDS.cs" />
+    <Compile Include="LuaFileTypes\LuaFileIW.cs" />
+    <Compile Include="LuaFileTypes\LuaFileT6.cs" />
     <Compile Include="LuaFileTypes\OpCodeTables\DefaultOpCodeTable.cs" />
     <Compile Include="LuaFileTypes\OpCodeTables\T7T8OpCodeTable.cs" />
     <Compile Include="LuaFile_old.cs" />
     <Compile Include="LuaFileTypes\LuaFileBase.cs" />
-    <Compile Include="LuaFileTypes\LuaFileT7.cs" />
+    <Compile Include="LuaFileTypes\LuaFileT7T8.cs" />
     <Compile Include="LuaFileTypes\Structures\Constant.cs" />
     <Compile Include="LuaFileTypes\Structures\ConstantType.cs" />
     <Compile Include="LuaFileTypes\Structures\FileHeader.cs" />

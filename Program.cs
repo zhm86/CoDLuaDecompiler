@@ -73,12 +73,14 @@ namespace luadec
         {
             Console.WriteLine("CoD Havok Decompiler by JariK");
 
-            string fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\uieditor\actions.lua";
-            fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui_mp\t6\hud\loading.lua";
+            string fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\lui\lui.lua";
+            //fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui_mp\t6\hud\loading.lua";
             //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Release\t8_luafiles\LuaFile_1a3d1f301d13ce9.lua";
             //fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\uieditor\widgets\aar\xpbarframe.lua";
             //fileName = @"E:\modding_tools\hydra\hydrax_old\exported_files\ui\test.luac";
-            fileName = @"C:\Users\Jerri\Downloads\c0000.hks";
+            //fileName = @"C:\Users\Jerri\Downloads\c0000.hks";
+            fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\t6_luafiles\ui_mp\t6\zombie\basezombie.lua";
+            fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\iw7_luafiles\ui\buildandservertext.lua";
             Console.WriteLine("Decompiling file: " + Path.GetFileName(fileName));
             var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName, new MemoryStream(File.ReadAllBytes(fileName)));
             
