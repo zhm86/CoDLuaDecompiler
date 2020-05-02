@@ -54,6 +54,22 @@ namespace PhilLibX.IO
             return str.ToString();
         }
         
+        public static string ReadNullTerminatedUTF8String(this BinaryReader br, int maxSize = -1)
+        {
+            // Create String Builder
+            StringBuilder str = new StringBuilder();
+            // Current Byte Read
+            byte byteRead;
+            // Size of String
+            int size = 0;
+            var bytes = new List<byte>();
+            // Loop Until we hit terminating null character
+            while ((byteRead = (byte) br.BaseStream.ReadByte()) != 0x0 && size++ != maxSize)
+                bytes.Add(byteRead);
+            // Ship back Result
+            return Encoding.UTF8.GetString(bytes.ToArray());
+        }
+        
         public static Int16 ReadBEInt16(this BinaryReader br)
         {
             var data = br.ReadBytes(2);
@@ -61,21 +77,26 @@ namespace PhilLibX.IO
             return BitConverter.ToInt16(data, 0);
         }
         
-        public static Int64 ReadInt64(this BinaryReader br)
+        public static Int64 ReadBEInt64(this BinaryReader br)
         {
             var data = br.ReadBytes(8);
             Array.Reverse(data);
             return BitConverter.ToInt64(data, 0);
         }
 
-        public static UInt32 ReadUInt32(this BinaryReader br)
+        public static Int32 ReadBEInt32(this BinaryReader br)
         {
             var data = br.ReadBytes(4);
             Array.Reverse(data);
-            return BitConverter.ToUInt32(data, 0);
+            return BitConverter.ToInt32(data, 0);
         }
 
-
+        public static Single ReadBESingle(this BinaryReader br)
+        {
+            var data = br.ReadBytes(4);
+            Array.Reverse(data);
+            return BitConverter.ToSingle(data, 0);
+        }
 
         /// <summary>
         /// Reads a string of fixed size

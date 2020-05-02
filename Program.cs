@@ -2,6 +2,8 @@
 
 using System;
 using System.IO;
+using System.Text;
+using SoulsFormats;
 
 namespace luadec
 {
@@ -76,6 +78,7 @@ namespace luadec
             //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Release\t8_luafiles\LuaFile_1a3d1f301d13ce9.lua";
             //fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\uieditor\widgets\aar\xpbarframe.lua";
             //fileName = @"E:\modding_tools\hydra\hydrax_old\exported_files\ui\test.luac";
+            fileName = @"C:\Users\Jerri\Downloads\c0000.hks";
             Console.WriteLine("Decompiling file: " + Path.GetFileName(fileName));
             var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName, new MemoryStream(File.ReadAllBytes(fileName)));
             
@@ -83,6 +86,9 @@ namespace luadec
             LuaDisassembler.GenerateIRHKS(main, file.MainFunction);
             
             File.WriteAllText(@"E:\steam\steamapps\common\Call of Duty Black Ops III\mods\thegreatwar\ui\testdecompiled.lua", main.ToString());
+            
+            //BinaryReaderEx br = new BinaryReaderEx(false, File.OpenRead(fileName));
+           // var lua = new LuaFile_old(br);
             
             Console.WriteLine("Decompiling complete");
         }

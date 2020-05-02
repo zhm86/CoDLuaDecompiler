@@ -7,7 +7,7 @@
         public uint B { get; set; }
         public uint C { get; set; }
         public bool ExtraCBit { get; set; } = false;
-        public uint Bx => (uint) (B * 512 + C + (ExtraCBit ? 256 : 0));
-        public int SBx => (int) (Bx - 65536 + 1);
+        public uint Bx { get; set; }
+        public int SBx { get; set; }
     }
 }

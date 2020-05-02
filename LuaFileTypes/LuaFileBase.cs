@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using DSLuaDecompiler.LuaFileTypes.Structures;
+using PhilLibX.IO;
 
 namespace DSLuaDecompiler.LuaFileTypes
 {
@@ -21,6 +23,7 @@ namespace DSLuaDecompiler.LuaFileTypes
         
         public LuaFile(string filePath, BinaryReader reader)
         {
+            reader.Seek(0, SeekOrigin.Begin);
             FilePath = filePath;
             Reader = reader;
             
@@ -33,8 +36,33 @@ namespace DSLuaDecompiler.LuaFileTypes
         public static LuaFile LoadLuaFile(string filePath, Stream stream)
         {
             var reader = new BinaryReader(stream);
-            // TODO: Check from what CoD this lua file is
+            var bytes = reader.ReadBytes(13);
+            
+            // Check the .LJ magic in IW8 lua
+            if(bytes[0] == 0x1B && bytes[1] == 0x4C && bytes[2] == 0x4A)
+                throw new NotImplementedException("Modern Warfare lua isn't implemented yet");
+            
+            // Check if lua version is 5.0
+            if(bytes[4] == 0x50)
+                throw new NotImplementedException("5.0 lua isn't implemented yet");
+            
+            // Check compiler version
+            if(bytes[5] == 0x0D)
+                throw new NotImplementedException("Black Ops 2 lua isn't implemented yet");
+            
+            // Check if they use big endian
+            if(bytes[6] == 0x00)
+                return new LuaFileDS(filePath, reader);
+            
+            if(bytes[12] == 0x03)
+                throw new NotImplementedException("Infinity Ward lua isn't implemented yet");
+            
             return new LuaFileT7(filePath, reader);
+        }
+        
+        public byte GetBit(long input, int bit)
+        {
+            return (byte)((input >> bit) & 1);
         }
     }
 }

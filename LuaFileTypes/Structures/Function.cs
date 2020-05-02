@@ -19,9 +19,12 @@ namespace DSLuaDecompiler.LuaFileTypes.Structures
         public IList<Instruction> Instructions { get; set; } = new List<Instruction>();
         public IList<Constant> Constants { get; set; } = new List<Constant>();
         public IList<Function> ChildFunctions { get; set; } = new List<Function>();
-        
+
+        public int LocalVarsCount { get; set; }
         public IList<Upvalue> Upvalues { get; set; } = new List<Upvalue>();
         public IList<Local> Locals { get; set; } = new List<Local>();
+        public string Path { get; set; }
+        public string Name { get; set; }
         
         public Dictionary<int, List<Local>> LocalMap { get; set; } = new Dictionary<int, List<Local>>();
         

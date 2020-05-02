@@ -67,6 +67,9 @@
     <Compile Include="IR\SymbolTable.cs" />
     <Compile Include="IR\While.cs" />
     <Compile Include="LuaDisassembler.cs" />
+    <Compile Include="LuaFileTypes\LuaFileDS.cs" />
+    <Compile Include="LuaFileTypes\OpCodeTables\DefaultOpCodeTable.cs" />
+    <Compile Include="LuaFileTypes\OpCodeTables\T7T8OpCodeTable.cs" />
     <Compile Include="LuaFile_old.cs" />
     <Compile Include="LuaFileTypes\LuaFileBase.cs" />
     <Compile Include="LuaFileTypes\LuaFileT7.cs" />

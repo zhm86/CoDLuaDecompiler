@@ -1252,7 +1252,7 @@ namespace luadec
                     case LuaOpCode.HKS_OPCODE_SETTABLE:
                     case LuaOpCode.HKS_OPCODE_SETTABLE_S:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a})[{RK(fun, b)}] := R({c})")));
-                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), Register(b)), RKIRHKS(fun, c, false)));
+                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), Register(b)), RKIRHKS(fun, c, szero)));
                         break;
                     case LuaOpCode.HKS_OPCODE_TAILCALL:
                     case LuaOpCode.HKS_OPCODE_TAILCALL_I:
@@ -1266,7 +1266,7 @@ namespace luadec
                         break;
                     case LuaOpCode.HKS_OPCODE_SETTABLE_S_BK:
                         //instructions.Add(new IR.PlaceholderInstruction(($@"R({a})[{RK(fun, b)}] := R({c})")));
-                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[(int) b])), RKIRHKS(fun, c, false)));
+                        instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[(int) b])), RKIRHKS(fun, c, szero)));
                         break;
                     case LuaOpCode.HKS_OPCODE_CALL_I:
                     case LuaOpCode.HKS_OPCODE_CALL_I_R1:
@@ -1421,7 +1421,7 @@ namespace luadec
                         break;
                     case LuaOpCode.HKS_OPCODE_SETFIELD:
                     case LuaOpCode.HKS_OPCODE_SETFIELD_R1:
-                        assn = new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), new IR.Constant(fun.Constants[(int) b].ToString())), Register((uint)c));
+                        assn = new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), new IR.Constant(fun.Constants[(int) b].ToString())), RKIRHKS(fun, c, szero));
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         break;
@@ -1447,7 +1447,7 @@ namespace luadec
                         irfun.IsVarargs = true;
                         break;
                     default:
-                        switch (OpPropertiesHKS[(int) opcode].OpMode)
+                        switch ((OpPropertiesHKS.Length > (int)opcode) ? OpPropertiesHKS[(int) opcode].OpMode : OpMode.IABC)
                         {
                             case OpMode.IABC:
                                 instructions.Add(new IR.PlaceholderInstruction(($@"{opcode} {a} {b} {c}")));
@@ -1463,10 +1463,7 @@ namespace luadec
                                 break;
                         }
                         //throw new Exception($@"Unimplemented opcode {OpPropertiesHKS[(int) opcode].OpName}");
-                        if (OpPropertiesHKS[(int) opcode].OpName == null)
-                        {
-                            Console.WriteLine(opcode);
-                        }
+                        
                         break;
                 }
                 foreach (var inst in instructions)
