@@ -62,6 +62,16 @@ namespace luadec.IR
         public List<Local> ArgumentNames = null;
 
         public bool IsVarargs = false;
+        
+        /// <summary>
+        /// Number of upvalues this function uses
+        /// </summary>
+        public int UpvalCount = 0;
+
+        /// <summary>
+        /// Upvalue binding symbold from parent closure
+        /// </summary>
+        public List<Identifier> UpvalueBindings = new List<Identifier>();
 
         public Function()
         {
@@ -134,7 +144,7 @@ namespace luadec.IR
         /// </summary>
         public void ClearDataInstructions()
         {
-            for (int i = Instructions.Count() - 1; i > 0; i--)
+            /*for (int i = Instructions.Count() - 1; i > 1; i--)
             {
                 if (Instructions[i] is Data d1)
                 {
@@ -149,7 +159,31 @@ namespace luadec.IR
                     Instructions.RemoveAt(i);
                     i++;
                 }
-            }
+            }*/
+
+            /*for (int i = Instructions.Count() - 1; i > 1; i--)
+            {
+                if (Instructions[i] is Data d)
+                {
+                    IR.Function closureFun = null;
+                    int index = i + 1;
+                    while (index < Instructions.Count)
+                    {
+                        var instr = Instructions[index];
+                        if (instr is Assignment a && a.Right is Closure c)
+                        {
+                            closureFun = c.Function;
+                        }
+
+                        index++;
+                    }
+
+                    if (closureFun == null)
+                    {
+                        throw new Exception("Closore functionf or data not found");
+                    }
+                }
+            }*/
         }
 
         /// <summary>
@@ -291,7 +325,7 @@ namespace luadec.IR
                     }
                     var newassn = new Assignment(assignee, jmp.Condition);
                     Instructions[i] = newassn;
-                    Instructions.RemoveRange(i + 1, 5);
+                    Instructions.RemoveRange(i + 1, 4); // Don't remove the final label as it can be a jump destination sometimes
                 }
             }
         }
@@ -831,6 +865,39 @@ namespace luadec.IR
             // Rename everything else recursively
             RenameBlock(BeginBlock);
         }
+        
+        // Detect the upvalue bindings for the child closures for Lua 5.0
+        public void RegisterClosureUpvalues50()
+        {
+            foreach (var b in BlockList)
+            {
+                for (int i = 0; i < b.Instructions.Count(); i++)
+                {
+                    // Recognize a closure instruction
+                    if (b.Instructions[i] is Assignment a && a.Right is Closure c)
+                    {
+                        // Fetch the closure bindings from the following instructions
+                        for (int j = 0; j < c.Function.UpvalCount; j++)
+                        {
+                            if (b.Instructions[i + 1] is Assignment ca && 
+                                ca.Left.Count == 1 && 
+                                ca.Left[0].Identifier.Regnum == 0 &&
+                                ca.Right is IdentifierReference ir &&
+                                ir.Identifier.IType == Identifier.IdentifierType.Register)
+                            {
+                                c.Function.UpvalueBindings.Add(ir.Identifier);
+                                ir.Identifier.IsClosureBound = true;
+                                b.Instructions.RemoveAt(i + 1);
+                            }
+                            else
+                            {
+                                throw new Exception("Unrecognized upvalue binding pattern following closure");
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // Given the IR is in SSA form, this does expression propogation/substitution
         public void PerformExpressionPropogation()
@@ -846,7 +913,12 @@ namespace luadec.IR
                         var inst = b.Instructions[i];
                         foreach (var use in inst.GetUses(true))
                         {
-                            if (use.DefiningInstruction != null && use.DefiningInstruction is Assignment a && a.Left.Count() == 1 && a.LocalAssignments == null && (use.UseCount == 1 || a.PropogateAlways))
+                            if (use.DefiningInstruction != null &&
+                                use.DefiningInstruction is Assignment a &&
+                                a.Left.Count() == 1 && a.LocalAssignments == null &&
+                                //(a.Right is IdentifierReference ir && ir) &&
+                                (use.UseCount == 1 || a.PropogateAlways) &&
+                                !a.Left[0].Identifier.IsClosureBound)
                             {
                                 bool replaced = inst.ReplaceUses(use, a.Right);
                                 if (a.Block != null && replaced)
@@ -860,6 +932,29 @@ namespace luadec.IR
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // Lua might generate the following (decompiled) code when doing a this call on a global variable:
+                //     REG0 = someGlobal
+                //     REG0:someFunction(blah...)
+                // This rewrites such statements to
+                //     someGlobal:someFunction(blah...)
+                foreach (var b in BlockList)
+                {
+                    for (int i = 0; i < b.Instructions.Count(); i++)
+                    {
+                        var inst = b.Instructions[i];
+                        if (inst is Assignment a && a.Right is FunctionCall fc && fc.Args.Count > 0 &&
+                            fc.Args[0] is IdentifierReference ir && !ir.HasIndex && ir.Identifier.UseCount == 2 &&
+                            i > 0 && b.Instructions[i - 1] is Assignment a2 && a2.Left.Count == 1 &&
+                            !a2.Left[0].HasIndex && a2.Left[0].Identifier == ir.Identifier)
+                        {
+                            a.ReplaceUses(a2.Left[0].Identifier, a2.Right);
+                            b.Instructions.RemoveAt(i - 1);
+                            i--;
+                            changed = true;
                         }
                     }
                 }
@@ -1082,6 +1177,118 @@ namespace luadec.IR
             }
         }
 
+        private void AddLoopLatch(CFG.AbstractGraph graph, CFG.AbstractGraph.Node head, CFG.AbstractGraph.Node latch,
+            HashSet<CFG.AbstractGraph.Node> interval)
+        {
+            if (!graph.LoopLatches.ContainsKey(latch))
+            {
+                graph.LoopLatches.Add(latch, new List<CFG.AbstractGraph.Node>());
+            }
+            graph.LoopLatches[latch].Add(head);
+
+            var loopNodes = new HashSet<CFG.AbstractGraph.Node>();
+
+            // Analyze the loop to determine the beginning of the range of postordered nodes that represent the loop
+            int beginNum = head.ReversePostorderNumber;
+            /*foreach (var succ in head.Successors)
+            {
+                if (succ.ReversePostorderNumber > beginNum && succ.ReversePostorderNumber <= latch.ReversePostorderNumber)
+                {
+                    beginNum = succ.ReversePostorderNumber;
+                }
+            }
+            if (beginNum == -1)
+            {
+                throw new Exception("Bad loop analysis");
+            }*/
+
+            //loopNodes.Add(head);
+            //head.InLoop = true;
+            head.IsHead = true;
+            graph.LoopHeads[head] = head;
+            foreach (var l in interval.Where(x => x.ReversePostorderNumber >= beginNum && x.ReversePostorderNumber <= latch.ReversePostorderNumber))
+            {
+                loopNodes.Add(l);
+                l.InLoop = true;
+            }
+
+            if (!graph.LoopFollows.ContainsKey(head))
+            {
+                CFG.LoopType type;
+                if (head.Successors.Any(next => !loopNodes.Contains(next)))
+                {
+                    type = CFG.LoopType.LoopPretested;
+                }
+                else
+                {
+                    type = latch.Successors.Any(next => !loopNodes.Contains(next)) ? CFG.LoopType.LoopPosttested : CFG.LoopType.LoopEndless;
+                }
+                graph.LoopTypes[head] = type;
+                List<CFG.AbstractGraph.Node> follows;
+                if (type == CFG.LoopType.LoopPretested)
+                {
+                    follows = head.Successors.Where(next => !loopNodes.Contains(next)).ToList();
+                }
+                else if (type == CFG.LoopType.LoopPosttested)
+                {
+                    follows = latch.Successors.Where(next => !loopNodes.Contains(next)).ToList();
+                }
+                else
+                {
+                    //follows = loopNodes.SelectMany(loopNode => loopNode.Successors.Where(next => !loopNodes.Contains(next))).ToList();
+                    // Heuristic: make the follow any loop successor node with a post-order number larger than the latch
+                    follows = loopNodes.SelectMany(loopNode => loopNode.Successors.Where(next => next.ReversePostorderNumber > latch.ReversePostorderNumber)).ToList();
+                }
+                CFG.AbstractGraph.Node follow;
+                if (follows.Count == 0)
+                {
+                    if (type != CFG.LoopType.LoopEndless)
+                    {
+                        throw new Exception("No follow for loop found");
+                    }
+                    follow = null;
+                }
+                else
+                {
+                    follow = follows.OrderBy(cand => cand.ReversePostorderNumber).First(); 
+                }
+                graph.LoopFollows[head] = follow;
+            }
+        }
+
+        private void DetectLoopsForIntervalLevel(CFG.AbstractGraph graph)
+        {
+            foreach (var interval in graph.Intervals)
+            {
+                var head = interval.Key;
+                var intervalNodes = interval.Value;
+                var latches = head.Predecessors.Where(p => intervalNodes.Contains(p)).OrderBy(p => p.ReversePostorderNumber).ToList();
+                foreach (var latch in latches)
+                {
+                    AddLoopLatch(graph, head, latch, intervalNodes);
+                }
+            }
+            var subgraph = graph.GetIntervalSubgraph();
+            if (subgraph != null)
+            {
+                DetectLoopsForIntervalLevel(subgraph);
+                foreach (var entry in subgraph.LoopLatches)
+                {
+                    var parentInterval = entry.Key.IntervalGraphParent.Interval;
+                    foreach (var head in entry.Value)
+                    {
+                        var latches = head.IntervalGraphParent.Predecessors.Where(p => parentInterval.Contains(p)).ToList();
+                        var headersInLoop = subgraph.LoopHeads.Where(e => e.Value == head).Select(e => e.Key.IntervalGraphParent).ToList();
+                        var intervalsInLoop = new HashSet<CFG.AbstractGraph.Node>(graph.Intervals.Where(e => (headersInLoop.Contains(e.Key)/* || e.Value == parentInterval*/)).SelectMany(e => e.Value));
+                        foreach (var latch in latches)
+                        {
+                            AddLoopLatch(graph, head.IntervalGraphParent, latch, intervalsInLoop);
+                        }
+                    }
+                }
+            }
+        }
+
         public void DetectLoops()
         {
             // on line ` head.LoopFollow = head.Successors.First(x => !loopNodes.Contains(x));` 
@@ -1095,6 +1302,10 @@ namespace luadec.IR
                 blockIDMap.Add(BlockList[i], i);
                 var node = new CFG.AbstractGraph.Node();
                 node.OriginalBlock = BlockList[i];
+                if (i == BlockList.Count() - 1)
+                {
+                    node.IsTerminal = true;
+                }
                 abstractNodes.Add(node);
             }
             foreach (var b in blockIDMap)
@@ -1116,152 +1327,21 @@ namespace luadec.IR
             headGraph.CalculateIntervals();
             headGraph.LabelReversePostorderNumbers();
 
-            var graphSequence = new List<CFG.AbstractGraph>();
-            CFG.AbstractGraph childGraph = headGraph;
-            while (childGraph != null)
-            {
-                graphSequence.Add(childGraph);
-                foreach (var interval in childGraph.Intervals)
-                {
-                    // Check if the interval head has a predecessor in the interval that's not already marked as in a loop
-                    if (interval.Key.Predecessors.Any(x => interval.Value.Contains(x) && !x.InLoop))
-                    {
-                        var head = interval.Key;
-                        interval.Key.OriginalBlock.IsLoopHead = true;
-                        var latch = interval.Key.Predecessors.Where(x => interval.Value.Contains(x)).Max();
-                        head.LoopLatch = latch;
-                        var loopNodes = new HashSet<CFG.AbstractGraph.Node>();
-
-                        // Analyze the loop to determine the beginning of the range of postordered nodes that represent the loop
-                        int beginNum = -1;
-                        foreach (var succ in head.Successors)
-                        {
-                            if (succ.ReversePostorderNumber > beginNum && succ.ReversePostorderNumber <= latch.ReversePostorderNumber)
-                            {
-                                beginNum = succ.ReversePostorderNumber;
-                            }
-                        }
-                        if (beginNum == -1)
-                        {
-                            throw new Exception("Bad loop analysis");
-                        }
-
-                        loopNodes.Add(head);
-                        head.InLoop = true;
-                        foreach (var l in interval.Value.Where(x => x.ReversePostorderNumber >= beginNum && x.ReversePostorderNumber <= latch.ReversePostorderNumber))
-                        {
-                            loopNodes.Add(l);
-                            l.InLoop = true;
-                        }
-
-                        // Classify the type of loop
-                        if (latch.Successors.Count() == 2)
-                        {
-                            if (head.Successors.Count() == 2)
-                            {
-                                if (head.Successors.All(x => loopNodes.Contains(x)))
-                                {
-                                    head.LoopType = CFG.LoopType.LoopPosttested;
-                                }
-                                else
-                                {
-                                    head.LoopType = CFG.LoopType.LoopPretested;
-                                }
-                            }
-                            else
-                            {
-                                head.LoopType = CFG.LoopType.LoopPosttested;
-                            }
-                        }
-                        else
-                        {
-                            if (head.Successors.Count() == 2)
-                            {
-                                head.LoopType = CFG.LoopType.LoopPretested;
-                            }
-                            else
-                            {
-                                head.LoopType = CFG.LoopType.LoopEndless;
-                            }
-                        }
-                        head.OriginalBlock.LoopType = head.LoopType;
-
-                        // Find the follow
-                        if (head.LoopType == CFG.LoopType.LoopPretested)
-                        {
-                            head.LoopFollow = head.Successors.First(x => !loopNodes.Contains(x));
-                            head.FollowLeader = head;
-                        }
-                        else if (head.LoopType == CFG.LoopType.LoopPosttested)
-                        {
-                            head.LoopFollow = latch.Successors.First(x => !loopNodes.Contains(x));
-                            head.FollowLeader = latch;
-                        }
-                        // Infinite loop
-                        else
-                        {
-                            int fol = int.MaxValue;
-                            CFG.AbstractGraph.Node follow = null;
-                            CFG.AbstractGraph.Node followLeader = null;
-                            foreach (var n in loopNodes.Where(x => x.Successors.Count() == 2))
-                            {
-                                foreach (var succ in n.Successors)
-                                {
-                                    if (!loopNodes.Contains(succ) && succ.ReversePostorderNumber < fol)
-                                    {
-                                        fol = succ.ReversePostorderNumber;
-                                        follow = succ;
-                                        followLeader = n;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (follow != null)
-                            {
-                                head.LoopFollow = follow;
-                                head.FollowLeader = followLeader;
-                            }
-                        }
-                    }
-                }
-                childGraph = childGraph.GetIntervalSubgraph();
-            }
-
-            // Backpropogate the loop information back to the original graph
-            graphSequence.Reverse();
-            graphSequence.Remove(headGraph);
-            foreach (var graph in graphSequence)
-            {
-                foreach (var interval in graph.Intervals)
-                {
-                    // If the interval is a loop head, backpropogate it
-                    var head = interval.Key;
-                    if (head.LoopLatch != null)
-                    {
-                        // The latch of the parent is a node that's a predecessor of the parent loop head that belongs to the interval represented by the child node
-                        var parentLatch = head.IntervalGraphParent.Predecessors.First(x => head.LoopLatch.IntervalGraphParent.Interval.Contains(x));
-
-                        // Use similar methods to get the follow lead and follow
-                        var followLeadInterval = head.FollowLeader.IntervalGraphParent.Interval;
-                        var follow = head.LoopFollow.IntervalGraphParent.Interval.First(x => x.Predecessors.Intersect(followLeadInterval).Count() > 0);
-                        var followLead = follow.Predecessors.First(x => followLeadInterval.Contains(x));
-                        head.IntervalGraphParent.LoopLatch = parentLatch;
-                        head.IntervalGraphParent.LoopFollow = follow;
-                        head.IntervalGraphParent.FollowLeader = followLead;
-                        head.IntervalGraphParent.LoopType = head.LoopType;
-                    }
-                }
-            }
+            DetectLoopsForIntervalLevel(headGraph);
 
             // Now move the head graph onto the real control flow graph
-            foreach (var node in headGraph.Nodes)
+            foreach (var latch in headGraph.LoopLatches)
             {
-                if (node.LoopLatch != null)
+                foreach (var head in latch.Value)
                 {
-                    var b = node.OriginalBlock;
-                    b.LoopLatch = node.LoopLatch.OriginalBlock;
-                    b.LoopLatch.IsLoopLatch = true;
-                    b.LoopFollow = node.LoopFollow.OriginalBlock;
+                    var b = head.OriginalBlock;
+                    b.IsLoopHead = true;
+                    b.LoopLatch = latch.Key.OriginalBlock;
+                    b.LoopType = headGraph.LoopTypes[head];
+                    if(headGraph.LoopFollows[head] == null)
+                        continue;
+                    b.LoopFollow = headGraph.LoopFollows[head].OriginalBlock;
+                    latch.Key.OriginalBlock.IsLoopLatch = true;
                 }
             }
         }
@@ -1271,10 +1351,6 @@ namespace luadec.IR
             var debugVisited = new HashSet<CFG.BasicBlock>();
             HashSet<CFG.BasicBlock> Visit(CFG.BasicBlock b)
             {
-                if (b.BlockID == 44)
-                {
-                    //Console.WriteLine("Hi");
-                }
                 var unresolved = new HashSet<CFG.BasicBlock>();
                 foreach (var succ in b.DominanceTreeSuccessors)
                 {
@@ -1286,7 +1362,7 @@ namespace luadec.IR
                     unresolved.UnionWith(Visit(succ));
                 }
 
-                if (b.Successors.Count() == 2 && b.Instructions.Last() is Jump jmp && !b.IsLoopHead)
+                if (b.Successors.Count() == 2 && b.Instructions.Last() is Jump jmp && (!b.IsLoopHead || b.LoopType != CFG.LoopType.LoopPretested))
                 {
                     int maxEdges = 0;
                     CFG.BasicBlock maxNode = null;
@@ -1337,6 +1413,13 @@ namespace luadec.IR
                     {
                         maxNode = EndBlock;
                     }
+                    
+                    // If we are a latch and the false node leads to a loop head, then the follow is the loop head
+                    if (maxNode == null && b.IsLoopLatch && b.Successors[1].IsLoopHead)
+                    {
+                        maxNode = b.Successors[1];
+                    }
+                    
                     if (maxNode != null)
                     {
                         b.Follow = maxNode;
@@ -1550,6 +1633,7 @@ namespace luadec.IR
                             else if (e.Successors[1] == t)
                             {
                                 // TODO: not correct
+                                throw new Exception("this is used so fix it");
                                 var newCond = new BinOp(n.Condition, ej.Condition, BinOp.OperationType.OpOr);
                                 n.Condition = newCond;
                                 if (e.Follow != null)
@@ -1734,6 +1818,7 @@ namespace luadec.IR
 
         /// <summary>
         /// Naive method to convert out of SSA. Not guaranteed to produce correct code since no liveness/interferance analysis is done
+        /// /// This method is no longer used because it actually sucked
         /// </summary>
         public void DropSSANaive()
         {
@@ -2166,8 +2251,7 @@ namespace luadec.IR
                             if (loopInitializer.Instructions[i] is Assignment a && a.GetDefines(true).Contains(loopvar))
                             {
                                 nfor.Initial = a;
-                                //if (!lua51)
-                                    loopInitializer.Instructions.RemoveAt(i);
+                                loopInitializer.Instructions.RemoveAt(i);
                                 break;
                             }
                         }
@@ -2179,7 +2263,7 @@ namespace luadec.IR
                             usedFollows.Add(node.LoopFollow);
                             node.LoopFollow.MarkCodegened(DebugID);
                         }
-                        if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                        if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
                         {
                             loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = nfor;
                         }
@@ -2192,7 +2276,7 @@ namespace luadec.IR
                         usedFollows.Add(node);
                     }
 
-                    // Match a generic for
+                    // Match a generic for with a predecessor initializer
                     else if (node.Instructions.Last() is Jump loopJump2 && loopJump2.Condition is BinOp loopCondition2 &&
                         loopInitializer.Instructions.Count >= 2 && loopInitializer.Instructions[loopInitializer.Instructions.Count-2] is Assignment la &&
                         la.Left[0] is IdentifierReference f && node.Instructions[0] is Assignment ba && ba.Right is FunctionCall fc &&
@@ -2251,12 +2335,12 @@ namespace luadec.IR
                     }
 
                     // Match a while
-                    else if (node.Instructions.Last() is Jump loopJump3 && loopJump3.Condition is BinOp loopCondition3)
+                    else if (node.Instructions.Last() is Jump loopJump4 && loopJump4.Condition is BinOp loopCondition4)
                     {
                         var whiles = new While();
 
                         // Loop head has condition
-                        whiles.Condition = loopCondition3;
+                        whiles.Condition = loopCondition4;
                         node.Instructions.RemoveAt(node.Instructions.Count - 1);
 
                         whiles.Body = node.Successors[0];
@@ -2298,6 +2382,127 @@ namespace luadec.IR
                         usedFollows.Add(node);
                     }
                 }
+                
+                                // repeat...until loop
+                if (node.LoopType == CFG.LoopType.LoopPosttested)
+                {
+                    var whiles = new While();
+                    whiles.IsPostTested = true;
+
+                    // Loop head has condition
+                    if (node.LoopLatch == null || node.LoopLatch.Instructions.Count == 0 || !(node.LoopLatch.Instructions.Last() is Jump))
+                    {
+                        throw new Exception("Unrecognized post-tested loop");
+                    }
+                    whiles.Condition = ((Jump)node.LoopLatch.Instructions.Last()).Condition;
+
+                    whiles.Body = node;
+                    if (node.LoopFollow != null && !usedFollows.Contains(node.LoopFollow))
+                    {
+                        whiles.Follow = node.LoopFollow;
+                        usedFollows.Add(node.LoopFollow);
+                        node.LoopFollow.MarkCodegened(DebugID);
+                    }
+
+                    if (node.Predecessors.Count == 2)
+                    {
+                        var loopInitializer = node.Predecessors.First(x => x != node.LoopLatch);
+                        if (loopInitializer.Successors.Count == 1)
+                        {
+                            if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            {
+                                loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whiles;
+                            }
+                            else
+                            {
+                                loopInitializer.Instructions.Add(whiles);
+                            }
+                        }
+                        else
+                        {
+                            whiles.IsBlockInlined = true;
+                            node.IsInfiniteLoop = true;
+                            node.Instructions.Insert(0, whiles);
+                        }
+                    }
+                    else
+                    {
+                        whiles.IsBlockInlined = true;
+                        node.IsInfiniteLoop = true;
+                        node.Instructions.Insert(0, whiles);
+                    }
+
+                    // Remove jumps in latch
+                    foreach (var pred in node.Predecessors)
+                    {
+                        if (pred.IsLoopLatch && pred.Instructions.Last() is Jump lj)
+                        {
+                            pred.Instructions.RemoveAt(pred.Instructions.Count - 1);
+                        }
+                    }
+
+                    node.MarkCodegened(DebugID);
+                    // The head might be the follow of an if statement, so do this to not codegen it
+                    usedFollows.Add(node);
+                }
+
+                // Infinite while loop
+                if (node.LoopType == CFG.LoopType.LoopEndless)
+                {
+                    var whiles = new While();
+
+                    // Loop head has condition
+                    whiles.Condition = new Constant(true);
+
+                    whiles.Body = node;
+                    if (node.LoopFollow != null && !usedFollows.Contains(node.LoopFollow))
+                    {
+                        whiles.Follow = node.LoopFollow;
+                        usedFollows.Add(node.LoopFollow);
+                        node.LoopFollow.MarkCodegened(DebugID);
+                    }
+
+                    if (node.Predecessors.Count == 2)
+                    {
+                        var loopInitializer = node.Predecessors.First(x => x != node.LoopLatch);
+                        if (loopInitializer.Successors.Count == 1)
+                        {
+                            if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            {
+                                loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whiles;
+                            }
+                            else
+                            {
+                                loopInitializer.Instructions.Add(whiles);
+                            }
+                        }
+                        else
+                        {
+                            whiles.IsBlockInlined = true;
+                            node.IsInfiniteLoop = true;
+                            node.Instructions.Insert(0, whiles);
+                        }
+                    }
+                    else
+                    {
+                        whiles.IsBlockInlined = true;
+                        node.IsInfiniteLoop = true;
+                        node.Instructions.Insert(0, whiles);
+                    }
+
+                    // Remove gotos in latch
+                    foreach (var pred in node.Predecessors)
+                    {
+                        if (pred.IsLoopLatch && pred.Instructions.Last() is Jump lj && !lj.Conditional)
+                        {
+                            pred.Instructions.RemoveAt(pred.Instructions.Count - 1);
+                        }
+                    }
+
+                    node.MarkCodegened(DebugID);
+                    // The head might be the follow of an if statement, so do this to not codegen it
+                    usedFollows.Add(node);
+                }
 
                 // Pattern match for an if statement
                 if (node.Follow != null && node.Instructions.Last() is Jump jmp)
@@ -2319,7 +2524,7 @@ namespace luadec.IR
                             {
                                 ifStatement.True.Instructions[ifStatement.True.Instructions.Count() - 1] = new Continue();
                             }
-                            else if (!ifStatement.True.Successors[0].IsLoopHead)
+                            else if (ifStatement.True.IsLoopLatch || !ifStatement.True.Successors[0].IsLoopHead)
                             {
                                 ifStatement.True.Instructions.Remove(lj);
                             }
@@ -2400,7 +2605,7 @@ namespace luadec.IR
                 }
                 else
                 {
-                    Parameters[i].Name = $@"arg{i}";
+                    Parameters[i].Name = $@"f{DebugID}_arg{i}";
                 }
             }
 
@@ -2424,7 +2629,7 @@ namespace luadec.IR
                                 }
                                 else
                                 {
-                                    ir.Identifier.Name = $@"local{localCounter}";
+                                    ir.Identifier.Name = $@"f{DebugID}_local{localCounter}";
                                     localCounter++;
                                 }
                             }
@@ -2522,7 +2727,7 @@ namespace luadec.IR
             {
                 foreach (var inst in Instructions)
                 {
-                    str += $@"{inst.OpLocation:D3}";
+                    str += $@"{inst.OpLocation:D3} ";
                     for (int i = 0; i < IndentLevel; i++)
                     {
                         if (inst is Label && i == IndentLevel - 1)
@@ -2577,9 +2782,9 @@ namespace luadec.IR
                     }
 
                     // Insert an implicit goto for fallthrough blocks if the destination isn't actually the next block
-                    var lastinst = b.Instructions.Last();
-                    if ((lastinst is Jump j && j.Conditional && b.Successors[0].BlockID != (b.BlockID + 1)) ||
-                        (!(lastinst is Jump) && !(lastinst is Return) && b.Successors[0].BlockID != (b.BlockID + 1)))
+                    var lastinst = (b.Instructions.Count > 0) ? b.Instructions.Last() : null;
+                    if (lastinst != null && ((lastinst is Jump j && j.Conditional && b.Successors[0].BlockID != (b.BlockID + 1)) ||
+                                             (!(lastinst is Jump) && !(lastinst is Return) && b.Successors[0].BlockID != (b.BlockID + 1))))
                     {
                         for (int i = 0; i < IndentLevel; i++)
                         {

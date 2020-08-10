@@ -31,6 +31,7 @@ namespace luadec.IR
 
         public IdentifierType IType;
         public ValueType VType;
+        public bool StackUpvalue = false;
         public string Name;
         public Identifier OriginalIdentifier = null;
 
@@ -41,6 +42,8 @@ namespace luadec.IR
         public int PhiUseCount = 0;
 
         public bool UpvalueResolved = false;
+        
+        public bool IsClosureBound = false;
 
         public override string ToString()
         {

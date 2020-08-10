@@ -102,6 +102,23 @@ namespace luadec.IR
         {
             Function = fun;
         }
+        
+        public override HashSet<Identifier> GetUses(bool regonly)
+        {
+            return Function.UpvalueBindings.ToHashSet();
+        }
+
+        public override void RenameUses(Identifier orig, Identifier newi)
+        {
+            for (int i = 0; i < Function.UpvalueBindings.Count; i++)
+            {
+                if (Function.UpvalueBindings[i] == orig)
+                {
+                    Function.UpvalueBindings[i] = newi;
+                    newi.IsClosureBound = true;
+                }
+            }
+        }
 
         public override string ToString()
         {
@@ -140,7 +157,7 @@ namespace luadec.IR
         public override HashSet<Identifier> GetUses(bool regonly)
         {
             var ret = new HashSet<Identifier>();
-            if (!regonly || Identifier.IType == Identifier.IdentifierType.Register)
+            if ((!regonly || Identifier.IType == Identifier.IdentifierType.Register) && !Identifier.IsClosureBound)
             {
                 ret.Add(Identifier);
             }
@@ -153,7 +170,7 @@ namespace luadec.IR
 
         public override void RenameUses(Identifier orig, Identifier newi)
         {
-            if (Identifier == orig)
+            if (Identifier == orig && !Identifier.IsClosureBound)
             {
                 Identifier = newi;
                 Identifier.UseCount++;
@@ -213,7 +230,7 @@ namespace luadec.IR
             {
                 if (/*DotNotation &&*/ idx is Constant c && c.ConstType == Constant.ConstantType.ConstString)
                 {
-                    ret = Identifier.ToString() + "." + c.String;
+                    ret += "." + c.String;
                 }
                 else
                 {
@@ -428,6 +445,10 @@ namespace luadec.IR
             OpGreaterEqual,
             OpAnd,
             OpOr,
+            OpBAnd,
+            OpBOr,
+            OpShiftRight,
+            OpShiftLeft,
             OpLoopCompare,
         }
 
@@ -491,6 +512,13 @@ namespace luadec.IR
                 case OperationType.OpAdd:
                 case OperationType.OpSub:
                     return 3;
+                case OperationType.OpShiftRight:
+                case OperationType.OpShiftLeft:
+                    return 4;
+                case OperationType.OpBAnd:
+                    return 5;
+                case OperationType.OpBOr:
+                    return 6;
                 case OperationType.OpEqual:
                 case OperationType.OpNotEqual:
                 case OperationType.OpLessThan:
@@ -498,11 +526,11 @@ namespace luadec.IR
                 case OperationType.OpGreaterThan:
                 case OperationType.OpGreaterEqual:
                 case OperationType.OpLoopCompare:
-                    return 4;
+                    return 7;
                 case OperationType.OpAnd:
-                    return 5;
+                    return 8;
                 case OperationType.OpOr:
-                    return 6;
+                    return 9;
                 default:
                     return 99999;
             }
@@ -632,6 +660,18 @@ namespace luadec.IR
                     break;
                 case OperationType.OpOr:
                     op = "or";
+                    break;
+                case OperationType.OpBAnd:
+                    op = "&";
+                    break;
+                case OperationType.OpBOr:
+                    op = "|";
+                    break;
+                case OperationType.OpShiftRight:
+                    op = ">>";
+                    break;
+                case OperationType.OpShiftLeft:
+                    op = "<<";
                     break;
                 case OperationType.OpLoopCompare:
                     op = ">?=";
@@ -842,13 +882,39 @@ namespace luadec.IR
 
             // Pattern match special lua this call
             int beginarg = 0;
-            if (Function is IdentifierReference ir && ir.TableIndices.Count == 1 &&
-                ir.TableIndices[0] is Constant c && c.ConstType == Constant.ConstantType.ConstString)
+            if (Function is IdentifierReference ir && ir.TableIndices.Count >= 1 &&
+                ir.TableIndices[^1] is Constant c && c.ConstType == Constant.ConstantType.ConstString)
             {
-                if (Args.Count() >= 1 && Args[0] is IdentifierReference thisir && thisir.TableIndices.Count == 0 && thisir.Identifier == ir.Identifier)
+                if (Args.Any() && Args[0] is IdentifierReference thisIr && thisIr.TableIndices.Count == 0 && thisIr.Identifier == ir.Identifier)
                 {
-                    ret += $@"{ir.Identifier.ToString()}:{c.String}(";
+                    ret += $@"{ir.Identifier}:{c.String}(";
                     beginarg = 1;
+                }
+                else if (Args.Any() && Args[0] is IdentifierReference ir2 && ir2.TableIndices.Count >= 1)
+                {
+                    var str = ir.Identifier.ToString();
+                    for(int i = 0; i < ir.TableIndices.Count - 1; i++)
+                    {
+                        var idx = ir.TableIndices[i];
+                        if (idx is Constant c2 && c2.ConstType == Constant.ConstantType.ConstString)
+                        {
+                            str += "." + idx.ToString().Replace("\"", "");
+                        }
+                        else
+                        {
+                            str += $@"[{idx}]";
+                        }
+                    }
+
+                    if (str == ir2.ToString())
+                    {
+                        ret += $@"{ir2}:{c.String}(";
+                        beginarg = 1;
+                    }
+                    else
+                    {
+                        ret += $@"{ir.Identifier.ToString()}.{c.String}(";
+                    }
                 }
                 else
                 {

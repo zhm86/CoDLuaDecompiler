@@ -3,7 +3,6 @@
 using System;
 using System.IO;
 using System.Text;
-using SoulsFormats;
 
 namespace luadec
 {
@@ -73,21 +72,22 @@ namespace luadec
         {
             Console.WriteLine("CoD Havok Decompiler by JariK");
 
-            string fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\lui\lui.lua";
-            //fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui_mp\t6\hud\loading.lua";
+            string fileName = @"/home/jari/ui/lui/lui.luac";
+            fileName = @"/home/jari/ui_mp/t6/hud/loading.luac";
+            fileName = @"/home/jari/ui/uieditor/widgets/zm_expiresin.luac";
             //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Release\t8_luafiles\LuaFile_1a3d1f301d13ce9.lua";
-            //fileName = @"C:\Greyhound\exported_files\black_ops_3\xrawfiles\ui\uieditor\widgets\aar\xpbarframe.lua";
+            //fileName = @"/home/jari\ui\uieditor\widgets\aar\xpbarframe.luac";
             //fileName = @"E:\modding_tools\hydra\hydrax_old\exported_files\ui\test.luac";
             //fileName = @"C:\Users\Jerri\Downloads\c0000.hks";
-            fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\t6_luafiles\ui_mp\t6\zombie\basezombie.lua";
-            fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\iw7_luafiles\ui\buildandservertext.lua";
+            //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\t6_luafiles\ui_mp\t6\zombie\basezombie.lua";
+            //fileName = @"/home/jari/ui/testfile.luac";
             Console.WriteLine("Decompiling file: " + Path.GetFileName(fileName));
             var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName, new MemoryStream(File.ReadAllBytes(fileName)));
             
             IR.Function main = new IR.Function();
             file.GenerateIR(main, file.MainFunction);
             
-            File.WriteAllText(@"E:\steam\steamapps\common\Call of Duty Black Ops III\mods\thegreatwar\ui\testdecompiled.lua", main.ToString());
+            File.WriteAllText(@"/home/jari/ui/testfile.luadc", main.ToString());
             
             //BinaryReaderEx br = new BinaryReaderEx(false, File.OpenRead(fileName));
            // var lua = new LuaFile_old(br);

@@ -17,5 +17,12 @@ namespace luadec.IR
         /// Lua locals are often defined at the last data instruction
         /// </summary>
         public List<Local> Locals = null;
+
+        public Instruction Instruction { get; set; }
+        
+        public override string ToString()
+        {
+            return $"{Instruction.OpCode} {Instruction.A} {Instruction.B} {Instruction.C}";
+        }
     }
 }
