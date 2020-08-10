@@ -54,7 +54,7 @@ namespace luadec.IR
         /// </summary>
         private HashSet<Identifier> SSAVariables;
 
-        private static int IndentLevel = 0;
+        public static int IndentLevel = 0;
 
         public static int DebugIDCounter = 0;
         public int DebugID = 0;
@@ -62,11 +62,21 @@ namespace luadec.IR
         public List<Local> ArgumentNames = null;
 
         public bool IsVarargs = false;
-        
+
         /// <summary>
         /// Number of upvalues this function uses
         /// </summary>
         public int UpvalCount = 0;
+
+        /// <summary>
+        /// For each upvalue in Lua 5.3, the register in the parent its bound to
+        /// </summary>
+        public List<int> UpvalueRegisterBinding = new List<int>();
+
+        /// <summary>
+        /// For each upvalue in Lua 5.3, if the upvalue exists on the stack
+        /// </summary>
+        public List<bool> UpvalueIsStackBinding = new List<bool>();
 
         /// <summary>
         /// Upvalue binding symbold from parent closure
@@ -144,7 +154,7 @@ namespace luadec.IR
         /// </summary>
         public void ClearDataInstructions()
         {
-            /*for (int i = Instructions.Count() - 1; i > 1; i--)
+            for (int i = Instructions.Count() - 1; i > 0; i--)
             {
                 if (Instructions[i] is Data d1)
                 {
@@ -159,31 +169,7 @@ namespace luadec.IR
                     Instructions.RemoveAt(i);
                     i++;
                 }
-            }*/
-
-            /*for (int i = Instructions.Count() - 1; i > 1; i--)
-            {
-                if (Instructions[i] is Data d)
-                {
-                    IR.Function closureFun = null;
-                    int index = i + 1;
-                    while (index < Instructions.Count)
-                    {
-                        var instr = Instructions[index];
-                        if (instr is Assignment a && a.Right is Closure c)
-                        {
-                            closureFun = c.Function;
-                        }
-
-                        index++;
-                    }
-
-                    if (closureFun == null)
-                    {
-                        throw new Exception("Closore functionf or data not found");
-                    }
-                }
-            }*/
+            }
         }
 
         /// <summary>
@@ -552,7 +538,8 @@ namespace luadec.IR
                     {
                         if (lastIndeterminantRet == null)
                         {
-                            throw new Exception("Error: Indeterminant argument function call without preceding indeterminant return function call");
+                            Console.WriteLine($"Error: Indeterminant argument function call without preceding indeterminant arguments");
+                            continue;
                         }
                         for (uint r = fc2.BeginArg; r <= lastIndeterminantRet.Regnum; r++)
                         {
@@ -560,11 +547,27 @@ namespace luadec.IR
                         }
                         lastIndeterminantRet = null;
                     }
+
+                    else if (i is Return ret2 && ret2.ReturnExpressions.Count == 1 &&
+                        ret2.ReturnExpressions[^1] is FunctionCall fc3 && fc3.IsIndeterminantArgumentCount)
+                    {
+                        if (lastIndeterminantRet == null)
+                        {
+                            Console.WriteLine("Error: Indeterminant argument function call without preceding indeterminant arguments");
+                            continue;
+                        }
+                        for (uint r = fc3.BeginArg; r <= lastIndeterminantRet.Regnum; r++)
+                        {
+                            fc3.Args.Add(new IdentifierReference(table.GetRegister(r)));
+                        }
+                        lastIndeterminantRet = null;
+                    }
                     if (i is Return ret && ret.IsIndeterminantReturnCount)
                     {
                         if (lastIndeterminantRet == null)
                         {
-                            throw new Exception("Error: Indeterminant return without preceding indeterminant return function call");
+                            Console.WriteLine("Error: Indeterminant return without preceding indeterminant return function call");
+                            continue;
                         }
                         for (uint r = ret.BeginRet; r <= lastIndeterminantRet.Regnum; r++)
                         {
@@ -716,7 +719,7 @@ namespace luadec.IR
 
         public void ConvertToSSA(HashSet<Identifier> allRegisters)
         {
-            allRegisters.UnionWith(Parameters.ToHashSet());
+            allRegisters.UnionWith(new HashSet<Identifier>(Parameters));
             ComputeDominance();
             ComputeDominanceFrontier();
             ComputeGlobalLiveness(allRegisters);
@@ -781,6 +784,7 @@ namespace luadec.IR
                 newName.Name = orig.Name + $@"_{Counters[orig]}";
                 newName.IType = Identifier.IdentifierType.Register;
                 newName.OriginalIdentifier = orig;
+                newName.IsClosureBound = orig.IsClosureBound;
                 Stacks[orig].Push(newName);
                 Counters[orig]++;
                 SSAVariables.Add(newName);
@@ -800,8 +804,14 @@ namespace luadec.IR
                 {
                     foreach (var use in inst.GetUses(true))
                     {
+                        if (use.IsClosureBound)
+                        {
+                            continue;
+                        }
                         if (Stacks[use].Count != 0)
-                        inst.RenameUses(use, Stacks[use].Peek());
+                        {
+                            inst.RenameUses(use, Stacks[use].Peek());
+                        }
                     }
                     foreach (var def in inst.GetDefines(true))
                     {
@@ -865,7 +875,7 @@ namespace luadec.IR
             // Rename everything else recursively
             RenameBlock(BeginBlock);
         }
-        
+
         // Detect the upvalue bindings for the child closures for Lua 5.0
         public void RegisterClosureUpvalues50()
         {
@@ -899,6 +909,49 @@ namespace luadec.IR
             }
         }
 
+        // Detect upvalue bindings for child closures in Lua 5.3
+        public void RegisterClosureUpvalues53(HashSet<Identifier> allRegisters)
+        {
+            foreach (var f in Closures)
+            {
+                for (int i = 0; i < f.UpvalCount; i++)
+                {
+                    if (f.UpvalueIsStackBinding[i])
+                    {
+                        var reg = allRegisters.First((x => x.Regnum == f.UpvalueRegisterBinding[i]));
+                        f.UpvalueBindings.Add(reg);
+                    }
+                    else
+                    {
+                        f.UpvalueBindings.Add(UpvalueBindings[f.UpvalueRegisterBinding[i]]);
+                    }
+                }
+            }
+
+            /*foreach (var b in BlockList)
+            {
+                for (int i = 0; i < b.Instructions.Count(); i++)
+                {
+                    // Recognize a closure instruction
+                    if (b.Instructions[i] is Assignment a && a.Right is Closure c)
+                    {
+                        for (int j = 0; j < c.Function.UpvalCount; j++)
+                        {
+                            if (c.Function.UpvalueIsStackBinding[i])
+                            {
+                                
+                            }
+                            else
+                            {
+                                // Otherwise inherit the upvalue
+                                c.Function.UpvalueBindings.Add(UpvalueBindings[f.UpvalueRegisterBinding[i]]);
+                            }
+                        }
+                    }
+                }
+            }*/
+        }
+
         // Given the IR is in SSA form, this does expression propogation/substitution
         public void PerformExpressionPropogation()
         {
@@ -916,7 +969,6 @@ namespace luadec.IR
                             if (use.DefiningInstruction != null &&
                                 use.DefiningInstruction is Assignment a &&
                                 a.Left.Count() == 1 && a.LocalAssignments == null &&
-                                //(a.Right is IdentifierReference ir && ir) &&
                                 (use.UseCount == 1 || a.PropogateAlways) &&
                                 !a.Left[0].Identifier.IsClosureBound)
                             {
@@ -1177,8 +1229,7 @@ namespace luadec.IR
             }
         }
 
-        private void AddLoopLatch(CFG.AbstractGraph graph, CFG.AbstractGraph.Node head, CFG.AbstractGraph.Node latch,
-            HashSet<CFG.AbstractGraph.Node> interval)
+        private void AddLoopLatch(CFG.AbstractGraph graph, CFG.AbstractGraph.Node head, CFG.AbstractGraph.Node latch, HashSet<CFG.AbstractGraph.Node> interval)
         {
             if (!graph.LoopLatches.ContainsKey(latch))
             {
@@ -1291,9 +1342,6 @@ namespace luadec.IR
 
         public void DetectLoops()
         {
-            // on line ` head.LoopFollow = head.Successors.First(x => !loopNodes.Contains(x));` 
-            // System.InvalidOperationException: 'Sequence contains no matching element'
-
             // Build an abstract graph to analyze with
             var blockIDMap = new Dictionary<CFG.BasicBlock, int>();
             var abstractNodes = new List<CFG.AbstractGraph.Node>();
@@ -1329,7 +1377,6 @@ namespace luadec.IR
 
             DetectLoopsForIntervalLevel(headGraph);
 
-            // Now move the head graph onto the real control flow graph
             foreach (var latch in headGraph.LoopLatches)
             {
                 foreach (var head in latch.Value)
@@ -1413,13 +1460,13 @@ namespace luadec.IR
                     {
                         maxNode = EndBlock;
                     }
-                    
+
                     // If we are a latch and the false node leads to a loop head, then the follow is the loop head
                     if (maxNode == null && b.IsLoopLatch && b.Successors[1].IsLoopHead)
                     {
                         maxNode = b.Successors[1];
                     }
-                    
+
                     if (maxNode != null)
                     {
                         b.Follow = maxNode;
@@ -1782,7 +1829,7 @@ namespace luadec.IR
                 {
                     foreach (var r in phi.Right)
                     {
-                        if (globalLiveness[phi.Left] != globalLiveness[r])
+                        if (phi.Left != null && globalLiveness[phi.Left] != globalLiveness[r])
                         {
                             globalLiveness[phi.Left].UnionWith(globalLiveness[r]);
                             globalLiveness[r] = globalLiveness[phi.Left];
@@ -1817,8 +1864,8 @@ namespace luadec.IR
         }
 
         /// <summary>
-        /// Naive method to convert out of SSA. Not guaranteed to produce correct code since no liveness/interferance analysis is done
-        /// /// This method is no longer used because it actually sucked
+        /// Naive method to convert out of SSA. Not guaranteed to produce correct code since no liveness/interferance analysis is done.
+        /// This method is no longer used because it actually sucked
         /// </summary>
         public void DropSSANaive()
         {
@@ -2202,7 +2249,7 @@ namespace luadec.IR
                 return declaredAssignments;
             }
 
-            visit(BeginBlock, Parameters.ToHashSet());
+            visit(BeginBlock, new HashSet<Identifier>(Parameters));
         }
 
         /// <summary>
@@ -2251,6 +2298,7 @@ namespace luadec.IR
                             if (loopInitializer.Instructions[i] is Assignment a && a.GetDefines(true).Contains(loopvar))
                             {
                                 nfor.Initial = a;
+                                //if (!lua51)
                                 loopInitializer.Instructions.RemoveAt(i);
                                 break;
                             }
@@ -2277,10 +2325,10 @@ namespace luadec.IR
                     }
 
                     // Match a generic for with a predecessor initializer
-                    else if (node.Instructions.Last() is Jump loopJump2 && loopJump2.Condition is BinOp loopCondition2 &&
-                        loopInitializer.Instructions.Count >= 2 && loopInitializer.Instructions[loopInitializer.Instructions.Count-2] is Assignment la &&
-                        la.Left[0] is IdentifierReference f && node.Instructions[0] is Assignment ba && ba.Right is FunctionCall fc &&
-                        fc.Function is IdentifierReference fci && fci.Identifier == f.Identifier)
+                    else if (node.Instructions.Count > 0 && node.Instructions.Last() is Jump loopJump2 && loopJump2.Condition is BinOp loopCondition2 &&
+                             loopInitializer.Instructions.Count >= 2 && loopInitializer.Instructions[loopInitializer.Instructions.Count - 2] is Assignment la &&
+                             la.Left[0] is IdentifierReference f && node.Instructions[0] is Assignment ba && ba.Right is FunctionCall fc &&
+                             fc.Function is IdentifierReference fci && fci.Identifier == f.Identifier)
                     {
                         var gfor = new GenericFor();
                         // Search the predecessor block for the initial assignment which contains the right expression
@@ -2307,7 +2355,7 @@ namespace luadec.IR
                         }
 
                         // Body contains more loop bytecode that can be removed
-                        var body = node.Successors[0];
+                        var body = (node.Successors[0].ReversePostorderNumber < node.Successors[1].ReversePostorderNumber) ? node.Successors[0] : node.Successors[1];
                         if (body.Instructions[0] is Assignment a3)
                         {
                             body.Instructions.RemoveAt(0);
@@ -2321,7 +2369,7 @@ namespace luadec.IR
                             usedFollows.Add(node.LoopFollow);
                             node.LoopFollow.MarkCodegened(DebugID);
                         }
-                        if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                        if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
                         {
                             loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = gfor;
                         }
@@ -2335,7 +2383,7 @@ namespace luadec.IR
                     }
 
                     // Match a while
-                    else if (node.Instructions.Last() is Jump loopJump4 && loopJump4.Condition is BinOp loopCondition4)
+                    else if (node.Instructions.First() is Jump loopJump4 && loopJump4.Condition is Expression loopCondition4)
                     {
                         var whiles = new While();
 
@@ -2343,6 +2391,7 @@ namespace luadec.IR
                         whiles.Condition = loopCondition4;
                         node.Instructions.RemoveAt(node.Instructions.Count - 1);
 
+                        //whiles.Body = (node.Successors[0].ReversePostorderNumber > node.Successors[1].ReversePostorderNumber) ? node.Successors[0] : node.Successors[1];
                         whiles.Body = node.Successors[0];
                         whiles.Body.MarkCodegened(DebugID);
                         if (!usedFollows.Contains(node.LoopFollow))
@@ -2354,7 +2403,57 @@ namespace luadec.IR
                         // If there's a goto to this loop head, replace it with the while. Otherwise replace the last instruction of this node
                         if (loopInitializer.Successors.Count == 1)
                         {
-                            if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            {
+                                loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whiles;
+                            }
+                            else
+                            {
+                                loopInitializer.Instructions.Add(whiles);
+                            }
+                        }
+                        else
+                        {
+                            node.Instructions.Add(whiles);
+                        }
+
+                        // Remove gotos in latch
+                        foreach (var pred in node.Predecessors)
+                        {
+                            if (pred.IsLoopLatch && pred.Instructions.Last() is Jump lj && !lj.Conditional)
+                            {
+                                pred.Instructions.RemoveAt(pred.Instructions.Count - 1);
+                            }
+                        }
+
+                        node.MarkCodegened(DebugID);
+                        // The head might be the follow of an if statement, so do this to not codegen it
+                        usedFollows.Add(node);
+                    }
+
+                    // Match a repeat while (single block)
+                    else if (node.Instructions.Last() is Jump loopJump5 && loopJump5.Condition is Expression loopCondition5 && node.LoopLatch == node)
+                    {
+                        var whiles = new While();
+                        whiles.IsPostTested = true;
+
+                        // Loop head has condition
+                        whiles.Condition = loopCondition5;
+                        node.Instructions.RemoveAt(node.Instructions.Count - 1);
+
+                        //whiles.Body = (node.Successors[0].ReversePostorderNumber > node.Successors[1].ReversePostorderNumber) ? node.Successors[0] : node.Successors[1];
+                        whiles.Body = node.Successors[1];
+                        whiles.Body.MarkCodegened(DebugID);
+                        if (!usedFollows.Contains(node.LoopFollow))
+                        {
+                            whiles.Follow = node.LoopFollow;
+                            usedFollows.Add(node.LoopFollow);
+                            node.LoopFollow.MarkCodegened(DebugID);
+                        }
+                        // If there's a goto to this loop head, replace it with the while. Otherwise replace the last instruction of this node
+                        if (loopInitializer.Successors.Count == 1)
+                        {
+                            if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
                             {
                                 loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whiles;
                             }
@@ -2382,8 +2481,8 @@ namespace luadec.IR
                         usedFollows.Add(node);
                     }
                 }
-                
-                                // repeat...until loop
+
+                // repeat...until loop
                 if (node.LoopType == CFG.LoopType.LoopPosttested)
                 {
                     var whiles = new While();
@@ -2409,7 +2508,7 @@ namespace luadec.IR
                         var loopInitializer = node.Predecessors.First(x => x != node.LoopLatch);
                         if (loopInitializer.Successors.Count == 1)
                         {
-                            if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
                             {
                                 loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whiles;
                             }
@@ -2467,7 +2566,7 @@ namespace luadec.IR
                         var loopInitializer = node.Predecessors.First(x => x != node.LoopLatch);
                         if (loopInitializer.Successors.Count == 1)
                         {
-                            if (loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
                             {
                                 loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whiles;
                             }
@@ -2505,7 +2604,7 @@ namespace luadec.IR
                 }
 
                 // Pattern match for an if statement
-                if (node.Follow != null && node.Instructions.Last() is Jump jmp)
+                if (node.Follow != null && node.Instructions.Count > 0 && node.Instructions.Last() is Jump jmp)
                 {
                     var ifStatement = new IfStatement();
                     ifStatement.Condition = jmp.Condition;
@@ -2583,7 +2682,7 @@ namespace luadec.IR
             {
                 if (b != BeginBlock && !b.Codegened())
                 {
-                    Console.WriteLine($@"Warning: block_{b.BlockID} in function {DebugID} was not used in code generation");
+                    Console.WriteLine($@"Warning: block_{b.BlockID} in function {DebugID} was not used in code generation. THIS IS LIKELY A DECOMPILER BUG!");
                 }
             }
 
@@ -2732,10 +2831,10 @@ namespace luadec.IR
                     {
                         if (inst is Label && i == IndentLevel - 1)
                         {
-                            str += "  ";
+                            str += "   ";
                             continue;
                         }
-                        str += "    ";
+                        str += "\t";
                     }
                     str += inst.ToString() + "\n";
                 }
@@ -2758,17 +2857,17 @@ namespace luadec.IR
                     {
                         if (i == IndentLevel - 1)
                         {
-                            str += "  ";
+                            str += "   ";
                             continue;
                         }
-                        str += "    ";
+                        str += "\t";
                     }
                     str += b.ToStringWithLoop() + "\n";
                     foreach (var inst in b.PhiFunctions.Values)
                     {
                         for (int i = 0; i < IndentLevel; i++)
                         {
-                            str += "    ";
+                            str += "\t";
                         }
                         str += inst.ToString() + "\n";
                     }
@@ -2776,7 +2875,7 @@ namespace luadec.IR
                     {
                         for (int i = 0; i < IndentLevel; i++)
                         {
-                            str += "    ";
+                            str += "\t";
                         }
                         str += inst.ToString() + "\n";
                     }
@@ -2784,7 +2883,7 @@ namespace luadec.IR
                     // Insert an implicit goto for fallthrough blocks if the destination isn't actually the next block
                     var lastinst = (b.Instructions.Count > 0) ? b.Instructions.Last() : null;
                     if (lastinst != null && ((lastinst is Jump j && j.Conditional && b.Successors[0].BlockID != (b.BlockID + 1)) ||
-                                             (!(lastinst is Jump) && !(lastinst is Return) && b.Successors[0].BlockID != (b.BlockID + 1))))
+                        (!(lastinst is Jump) && !(lastinst is Return) && b.Successors[0].BlockID != (b.BlockID + 1))))
                     {
                         for (int i = 0; i < IndentLevel; i++)
                         {
@@ -2799,9 +2898,9 @@ namespace luadec.IR
             {
                 for (int i = 0; i < IndentLevel; i++)
                 {
-                    str += "    ";
+                    str += "\t";
                 }
-                str += "end\n";
+                str += "end";
             }
             return str;
         }

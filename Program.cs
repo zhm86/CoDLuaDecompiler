@@ -2,7 +2,11 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
+using DSLuaDecompiler.LuaFileTypes.Structures;
+using luadec.IR;
+using Function = luadec.IR.Function;
 
 namespace luadec
 {
@@ -67,30 +71,70 @@ namespace luadec
                 }
             }
         }*/
-        
+
+        public static bool UseUpvalues { get; set; }= false;
         static void Main(string[] args)
         {
             Console.WriteLine("CoD Havok Decompiler by JariK");
 
-            string fileName = @"/home/jari/ui/lui/lui.luac";
-            fileName = @"/home/jari/ui_mp/t6/hud/loading.luac";
-            fileName = @"/home/jari/ui/uieditor/widgets/zm_expiresin.luac";
+            if (args.Contains("-up"))
+            {
+                UseUpvalues = true;
+            }
+            
+            string[] files = new string[1] {"/home/jari/ui/uieditor/widgets/aar/xpbarframe.luac"};
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Give the folder that you want to decompile: ");
+                string folder = Console.ReadLine();
+                if (Directory.Exists(folder))
+                {
+                    files = Directory.GetFiles(folder, "*.lua*", SearchOption.AllDirectories);
+                }
+            }
+            else
+            {
+                files = args.Where(x => (Path.GetExtension(x) == ".lua" || Path.GetExtension(x) == ".luac") && File.Exists(x)).ToArray();
+            }
+            
+            foreach (string fileName in files)
+            {
+                if (Path.GetExtension(fileName) != ".lua" && Path.GetExtension(fileName) != ".luac")
+                {
+                    continue;
+                }
+                Console.WriteLine("Decompiling file: " + Path.GetFileName(fileName));
+                try
+                {
+                    var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName,
+                        new MemoryStream(File.ReadAllBytes(fileName)));
+
+                    // TODO: shite static stuff that I need to change
+                    Function.DebugIDCounter = 0;
+                    Function.IndentLevel = 0;
+                    LuaDisassembler.SymbolTable = new SymbolTable();
+                    
+                    IR.Function main = new IR.Function();
+                    file.GenerateIR(main, file.MainFunction);
+
+                    File.WriteAllText(fileName + "d", main.ToString());
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+
+            //string fileName = @"/home/jari/ui/lui/lui.luac";
+            //fileName = @"/home/jari/ui_mp/t6/hud/loading.luac";
+            //fileName = @"/home/jari/ui/uieditor/widgets/zm_expiresin.luac";
+            //fileName = @"/home/jari/ui/t7/utility/ammowidgetutility.luac";
             //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Release\t8_luafiles\LuaFile_1a3d1f301d13ce9.lua";
-            //fileName = @"/home/jari\ui\uieditor\widgets\aar\xpbarframe.luac";
+            //fileName = @"/home/jari/ui/uieditor/conditions_helper.luac";
             //fileName = @"E:\modding_tools\hydra\hydrax_old\exported_files\ui\test.luac";
             //fileName = @"C:\Users\Jerri\Downloads\c0000.hks";
             //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\t6_luafiles\ui_mp\t6\zombie\basezombie.lua";
             //fileName = @"/home/jari/ui/testfile.luac";
-            Console.WriteLine("Decompiling file: " + Path.GetFileName(fileName));
-            var file = DSLuaDecompiler.LuaFileTypes.LuaFile.LoadLuaFile(fileName, new MemoryStream(File.ReadAllBytes(fileName)));
-            
-            IR.Function main = new IR.Function();
-            file.GenerateIR(main, file.MainFunction);
-            
-            File.WriteAllText(@"/home/jari/ui/testfile.luadc", main.ToString());
-            
-            //BinaryReaderEx br = new BinaryReaderEx(false, File.OpenRead(fileName));
-           // var lua = new LuaFile_old(br);
             
             Console.WriteLine("Decompiling complete");
         }

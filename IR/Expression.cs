@@ -122,7 +122,19 @@ namespace luadec.IR
 
         public override string ToString()
         {
-            return Function.ToString();
+            /*string ret = "[";
+
+            // Debug closure bindings
+            for (int i = 0; i < Function.UpvalueBindings.Count(); i++)
+            {
+                ret += Function.UpvalueBindings[i].ToString();
+                if (i != Function.UpvalueBindings.Count() - 1)
+                {
+                    ret += ", ";
+                }
+            }
+            ret += "] -> ";*/
+            return /*ret + */Function.ToString();
         }
     }
 
@@ -913,12 +925,12 @@ namespace luadec.IR
                     }
                     else
                     {
-                        ret += $@"{ir.Identifier.ToString()}.{c.String}(";
+                        ret += $@"{Function.ToString()}(";
                     }
                 }
                 else
                 {
-                    ret += $@"{ir.Identifier.ToString()}.{c.String}(";
+                    ret += $@"{Function.ToString()}(";
                 }
             }
             else

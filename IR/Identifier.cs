@@ -15,6 +15,7 @@ namespace luadec.IR
         {
             Register,
             Global,
+            GlobalTable,
             Upvalue,
             Varargs,
         }
@@ -42,7 +43,8 @@ namespace luadec.IR
         public int PhiUseCount = 0;
 
         public bool UpvalueResolved = false;
-        
+
+        // If this identifier is used by a closure and therefore can't be inlined
         public bool IsClosureBound = false;
 
         public override string ToString()
