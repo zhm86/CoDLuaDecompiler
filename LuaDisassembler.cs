@@ -75,7 +75,6 @@ namespace luadec
             // First register closures for all the children
             for (int i = 0; i < fun.ChildFunctions.Count; i++)
             {
-                irfun.AddClosure(new IR.Function());
                 var cfun = new IR.Function();
                 // Upval count needs to be set for child functions for analysis to be correct
                 cfun.UpvalCount = fun.ChildFunctions[i].Upvalues.Count;
@@ -150,7 +149,7 @@ namespace luadec
                         }
 
                         Identifier up;
-                        if (Program.UseUpvalues)
+                        if (Program.UseUpvalues && b < irfun.UpvalueBindings.Count)
                             up = irfun.UpvalueBindings[(int) b];
                         else
                             up = SymbolTable.GetUpvalue(b);
@@ -260,6 +259,7 @@ namespace luadec
                         instructions.Add(assn);
                         break;
                     case LuaOpCode.HKS_OPCODE_NOT:
+                    case LuaOpCode.HKS_OPCODE_NOT_R1:
                         assn = new IR.Assignment(SymbolTable.GetRegister(a),
                             new IR.UnaryOp(new IR.IdentifierReference(SymbolTable.GetRegister((uint)b)), IR.UnaryOp.OperationType.OpNot));
                         CheckLocal(assn, fun, pc);
@@ -329,6 +329,12 @@ namespace luadec
                         if (a == 1)
                             operation = IR.BinOp.OperationType.OpNotEqual;
                         instructions.Add(new IR.Jump(irfun.GetLabel((uint)(pc + 2)), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), operation)));
+                        break;
+                    case LuaOpCode.HKS_OPCODE_EQ_BK:
+                        operation = IR.BinOp.OperationType.OpEqual;
+                        if (a == 1)
+                            operation = IR.BinOp.OperationType.OpNotEqual;
+                        instructions.Add(new IR.Jump(irfun.GetLabel((uint)(pc + 2)), new IR.BinOp(ToConstantIR(fun.Constants[(int) b]), Register((uint)c), operation)));
                         break;
                     case LuaOpCode.HKS_OPCODE_LT:
                         operation = IR.BinOp.OperationType.OpLessThan;
@@ -518,7 +524,7 @@ namespace luadec
                             IR.Function closureFunc = null;
                             int index = pc;
 
-                            while (index > 0)
+                            while (index >= 0)
                             {
                                 if (fun.Instructions[index].OpCode == LuaOpCode.HKS_OPCODE_CLOSURE)
                                 {
@@ -568,6 +574,10 @@ namespace luadec
                         CheckLocal(assn, fun, pc);
                         instructions.Add(assn);
                         irfun.IsVarargs = true;
+                        break;
+                    case LuaOpCode.HKS_OPCODE_CLOSE:
+                        // LUA source : close all variables in the stack up to (>=) R(A)
+                        // Let's ignore this for now, doesn't print anything and don't know if it affects SSA
                         break;
                     default:
                         Console.WriteLine($@"Missing op: {opcode} {a} {b} {c}");

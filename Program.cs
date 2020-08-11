@@ -80,9 +80,10 @@ namespace luadec
             if (args.Contains("-up"))
             {
                 UseUpvalues = true;
+                args = args.Where(a => a != "-up").ToArray();
             }
             
-            string[] files = new string[1] {"/home/jari/ui/uieditor/widgets/aar/xpbarframe.luac"};
+            string[] files = new string[1] {"/home/jari/ui/uieditor/widgets/callingcards/callingcards_codchamps_champion_lights.luac"};
             if (args.Length == 0)
             {
                 Console.WriteLine("Give the folder that you want to decompile: ");
@@ -96,6 +97,8 @@ namespace luadec
             {
                 files = args.Where(x => (Path.GetExtension(x) == ".lua" || Path.GetExtension(x) == ".luac") && File.Exists(x)).ToArray();
             }
+
+            int errors = 0;
             
             foreach (string fileName in files)
             {
@@ -121,9 +124,12 @@ namespace luadec
                 }
                 catch(Exception e)
                 {
+                    errors++;
                     Console.WriteLine(e);
                 }
             }
+            
+            Console.WriteLine($"Errors: {errors}/{files.Length}");
 
             //string fileName = @"/home/jari/ui/lui/lui.luac";
             //fileName = @"/home/jari/ui_mp/t6/hud/loading.luac";
