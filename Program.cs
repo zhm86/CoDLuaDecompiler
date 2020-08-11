@@ -72,18 +72,11 @@ namespace luadec
             }
         }*/
 
-        public static bool UseUpvalues { get; set; }= false;
         static void Main(string[] args)
         {
-            Console.WriteLine("CoD Havok Decompiler by JariK");
+            Console.WriteLine("CoD Havok Decompiler made from katalash's DSLuaDecompiler");
 
-            if (args.Contains("-up"))
-            {
-                UseUpvalues = true;
-                args = args.Where(a => a != "-up").ToArray();
-            }
-            
-            string[] files = new string[1] {"/home/jari/ui/uieditor/widgets/callingcards/callingcards_codchamps_champion_lights.luac"};
+            string[] files = new string[1];
             if (args.Length == 0)
             {
                 Console.WriteLine("Give the folder that you want to decompile: ");
@@ -129,19 +122,8 @@ namespace luadec
                 }
             }
             
-            Console.WriteLine($"Errors: {errors}/{files.Length}");
+            //Console.WriteLine($"Errors: {errors}/{files.Length}");
 
-            //string fileName = @"/home/jari/ui/lui/lui.luac";
-            //fileName = @"/home/jari/ui_mp/t6/hud/loading.luac";
-            //fileName = @"/home/jari/ui/uieditor/widgets/zm_expiresin.luac";
-            //fileName = @"/home/jari/ui/t7/utility/ammowidgetutility.luac";
-            //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Release\t8_luafiles\LuaFile_1a3d1f301d13ce9.lua";
-            //fileName = @"/home/jari/ui/uieditor/conditions_helper.luac";
-            //fileName = @"E:\modding_tools\hydra\hydrax_old\exported_files\ui\test.luac";
-            //fileName = @"C:\Users\Jerri\Downloads\c0000.hks";
-            //fileName = @"E:\Users\Jari_new\Documents\Github\CoDLUIDecompiler\CoDLUIDecompiler\bin\Debug\t6_luafiles\ui_mp\t6\zombie\basezombie.lua";
-            //fileName = @"/home/jari/ui/testfile.luac";
-            
             Console.WriteLine("Decompiling complete");
         }
     }

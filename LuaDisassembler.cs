@@ -148,11 +148,7 @@ namespace luadec
                             //throw new Exception("Reference to unbound upvalue");
                         }
 
-                        Identifier up;
-                        if (Program.UseUpvalues && b < irfun.UpvalueBindings.Count)
-                            up = irfun.UpvalueBindings[(int) b];
-                        else
-                            up = SymbolTable.GetUpvalue(b);
+                        Identifier up = irfun.UpvalueBindings[(int) b];
                         up.IsClosureBound = true;
                         instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(up)));
                         break;
@@ -519,7 +515,7 @@ namespace luadec
                         instructions.Add(assn);
                         break;
                     case LuaOpCode.HKS_OPCODE_DATA:
-                        if (a != 0 && Program.UseUpvalues)
+                        if (a != 0)
                         {
                             IR.Function closureFunc = null;
                             int index = pc;
@@ -629,10 +625,7 @@ namespace luadec
             irfun.VerifyLivenessNoInterference();
 
             // Convert out of SSA and rename variables
-            
-            // This messes up with upvalues
-            if(!Program.UseUpvalues)
-                irfun.DropSSADropSubscripts();
+            irfun.DropSSADropSubscripts();
             irfun.AnnotateLocalDeclarations();
             irfun.ArgumentNames = fun.LocalsAt(0);
             irfun.RenameVariables();

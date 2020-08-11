@@ -1,10 +1,42 @@
-# DSLuaDecompiler
-This is a work in progress decompiler for Lua 5.0.2 and HavokScript. Specifically, it is designed and intended to decompile Lua files found in Dark Souls, Dark Souls 3, Bloodborne, and Sekiro. These scripts are primarily used to implement AI logic in the games. DS3, Bloodborne, and Sekiro also use HavokScript, a heavily modified version of Lua 5.1, to interface the game with the Havok behavior system and much of the character animation logic is in HavokScript. This decompiler will decompile a subset of Havokscript that is used in these games.
+# Overview
+[![Releases](https://img.shields.io/github/downloads/JariKCoding/CoDHVKDecompiler/total.svg)](https://github.com/JariKCoding/CoDHVKDecompiler/)
 
-This decompiler is not yet complete and not usable by the end-user yet, but it is making rapid progress and is able to perfectly structure the control flows of many AI files in DS3 so far. It's also now able to decompile DS3's c0000.hks file, which is a massive HavokScript file that implements the majority of the player logic in DS3.
+**CoDHVKDecompiler** is a lua decompiler for Havok Scripts from various Call Of Duty games. It's main purpose is to provide access to scripts that Treyarch did not provide in the Call of Duty: Black Ops III Mod Tools and to give greater insight into how Treyarch and the other studios achieved certain things, rebuild menus from the game, etc.
 
-Some of the design decisions that differentiate this decompiler from other Lua decompilers are:
-1. Designed to run without any debug information in the Lua file, as debug information is generally stripped in the games, but will use the information to assist in decompilation if available.
-2. Uses Single-Static Analysis (SSA) for the majority of the data-flow analysis, type inference, and constant/expression propogation
-3. Uses a control-flow graph (CFG) and structural analysis to recover high level control flow constructs (if/else, while, for, etc).
-4. Will use Dark Souls specific research to automatically name and annotate decompiled files.
+Supports following games out of the box: **BlackOps2**, **BlackOps3**, **BlackOps4**, **Ghosts**, **AdvancedWarfare**, **InfiniteWarfare**, **ModernWarfareRemastered** and **WorldWar2**
+
+This is made from Katalash's DSLuaDecompiler and this wouldn't be possible without his repo that he put tons of work into. I was going to merge this but I made too many edits specifically for CoD
+
+### Why is this decompiler better than all my other ones?
+
+- Proper loop detection
+- SSA (Keeping track of different variables)
+
+### What can be improved
+
+- Not all files get decompiled yet
+- Still has some errors with different loops that need to be debugged
+
+### How to Use 
+
+- To decompile a couple/a single file(s) just drop it on the .exe
+- To decompile whole folders open the program and give it the path
+
+## Download
+
+The latest version can be found on the [Releases Page](https://github.com/JariKCoding/CoDHVKDecompiler/releases).
+
+## Requirements
+
+* Windows 7 x86 and above
+* .NET Core 3.1
+
+## Credits
+
+- DTZxPorter - Original lua disassembler to find the basics
+- Scobalula - Utilities and general help
+- Katalash & jam1garner - DSLuaDecompiler
+
+## License 
+
+CoDHVKDecompiler is licensed under the MIT license and its source code is free to use and modify. CoDHVKDecompiler comes with NO warranty, any damages caused are solely the responsibility of the user. See the LICENSE file for more information.

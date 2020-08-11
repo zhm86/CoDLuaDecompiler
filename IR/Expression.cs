@@ -169,7 +169,7 @@ namespace luadec.IR
         public override HashSet<Identifier> GetUses(bool regonly)
         {
             var ret = new HashSet<Identifier>();
-            if ((!regonly || Identifier.IType == Identifier.IdentifierType.Register) && !Identifier.IsClosureBound)
+            if ((!regonly || Identifier.IType == Identifier.IdentifierType.Register) /*&& !Identifier.IsClosureBound*/)
             {
                 ret.Add(Identifier);
             }
@@ -182,7 +182,7 @@ namespace luadec.IR
 
         public override void RenameUses(Identifier orig, Identifier newi)
         {
-            if (Identifier == orig && !Identifier.IsClosureBound)
+            if (Identifier == orig/* && !Identifier.IsClosureBound*/)
             {
                 Identifier = newi;
                 Identifier.UseCount++;

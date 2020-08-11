@@ -876,39 +876,6 @@ namespace luadec.IR
             RenameBlock(BeginBlock);
         }
 
-        // Detect the upvalue bindings for the child closures for Lua 5.0
-        public void RegisterClosureUpvalues50()
-        {
-            foreach (var b in BlockList)
-            {
-                for (int i = 0; i < b.Instructions.Count(); i++)
-                {
-                    // Recognize a closure instruction
-                    if (b.Instructions[i] is Assignment a && a.Right is Closure c)
-                    {
-                        // Fetch the closure bindings from the following instructions
-                        for (int j = 0; j < c.Function.UpvalCount; j++)
-                        {
-                            if (b.Instructions[i + 1] is Assignment ca && 
-                                ca.Left.Count == 1 && 
-                                ca.Left[0].Identifier.Regnum == 0 &&
-                                ca.Right is IdentifierReference ir &&
-                                ir.Identifier.IType == Identifier.IdentifierType.Register)
-                            {
-                                c.Function.UpvalueBindings.Add(ir.Identifier);
-                                ir.Identifier.IsClosureBound = true;
-                                b.Instructions.RemoveAt(i + 1);
-                            }
-                            else
-                            {
-                                throw new Exception("Unrecognized upvalue binding pattern following closure");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // Detect upvalue bindings for child closures in Lua 5.3
         public void RegisterClosureUpvalues53(HashSet<Identifier> allRegisters)
         {
@@ -2355,7 +2322,8 @@ namespace luadec.IR
                         }
 
                         // Body contains more loop bytecode that can be removed
-                        var body = (node.Successors[0].ReversePostorderNumber < node.Successors[1].ReversePostorderNumber) ? node.Successors[0] : node.Successors[1];
+                        //var body = (node.Successors[0].ReversePostorderNumber > node.Successors[1].ReversePostorderNumber) ? node.Successors[0] : node.Successors[1];
+                        var body = node.Successors[0];
                         if (body.Instructions[0] is Assignment a3)
                         {
                             body.Instructions.RemoveAt(0);
