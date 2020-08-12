@@ -2234,6 +2234,26 @@ namespace luadec.IR
             }
         }
 
+        public void AddEmptyLines()
+        {
+            foreach (var b in BlockList)
+            {
+                for (int i = 0; i < b.Instructions.Count - 2; i++)
+                {
+                    var inst = b.Instructions[i];
+                    if (inst is Assignment a && a.Right is FunctionCall fc &&
+                        fc.Function.ToString().Contains("addElement"))
+                    {
+                        var inst2 = b.Instructions[i + 1];
+                        if (inst2 is Assignment a2 && fc.Args[1].ToString() == a2.Right.ToString() && a2.Left[0].Identifier.ToString() == fc.Args[0].ToString())
+                        {
+                            b.Instructions.Insert(i + 2, new NewLine());
+                        }
+                    }
+                }
+            }
+        }
+
         public void ConvertToAST(bool lua51 = false)
         {
             // Traverse all the nodes in post-order and try to convert jumps to if statements

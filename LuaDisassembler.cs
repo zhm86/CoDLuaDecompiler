@@ -630,6 +630,7 @@ namespace luadec
             irfun.ArgumentNames = fun.LocalsAt(0);
             irfun.RenameVariables();
             irfun.Parenthesize();
+            irfun.AddEmptyLines();
 
             // Convert to AST
             irfun.ConvertToAST(true);

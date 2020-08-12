@@ -26,8 +26,7 @@ namespace luadec
                 {
                     files.AddRange(Directory.GetFiles(arg, "*.lua*", SearchOption.AllDirectories).ToList());
                 }
-                // next determine if we're a file (lua is considered an archive apparently)
-                else if (attr.HasFlag(FileAttributes.Archive) && Path.GetExtension(arg).Contains(".lua"))
+                else if (Path.GetExtension(arg).Contains(".lua"))
                 {
                     files.Add(arg);
                 }
@@ -67,7 +66,7 @@ namespace luadec
 
                     output.GenerateIR(main, output.MainFunction);
 
-                    var outputPath = Path.GetDirectoryName(filePath) + "\\" + Path.GetFileNameWithoutExtension(filePath) + ".dec.lua";
+                    var outputPath = Path.GetDirectoryName(filePath) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(filePath) + ".dec.lua";
                     
                     File.WriteAllText(outputPath, main.ToString());
                     count++;
