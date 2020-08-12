@@ -39,6 +39,9 @@ namespace DSLuaDecompiler.LuaFileTypes
             var reader = new BinaryReader(stream);
             var bytes = reader.ReadBytes(13);
             
+            if(bytes[0] != 0x1B || bytes[1] != 0x4C || bytes[2] != 0x75 || bytes[3] != 0x61)
+                throw new Exception("Invalid file magic");
+            
             // Check the .LJ magic in IW8 lua
             if(bytes[0] == 0x1B && bytes[1] == 0x4C && bytes[2] == 0x4A)
                 throw new NotImplementedException("Modern Warfare lua isn't implemented yet");

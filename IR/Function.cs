@@ -2705,6 +2705,46 @@ namespace luadec.IR
                     }
                 }
             }
+
+            // Adding special variable names for LUI widgets
+            foreach (var b in BlockList)
+            {
+                foreach (var i in b.Instructions)
+                {
+                    if (i is Assignment a && a.Right is FunctionCall fc && a.Left.Count == 1)
+                    {
+                        string name;
+                        if (fc.Function.ToString().Contains("LUI.UIElement.new"))
+                        {
+                            name = "Widget";
+                        }
+                        else if (fc.Function.ToString().Contains("CoD.Menu.NewForUIEditor"))
+                        {
+                            name = "HudRef";
+                        }
+                        else 
+                            continue;
+                        if (a.Left[0] is IdentifierReference ir && !ir.HasIndex && ir.Identifier.IType == Identifier.IdentifierType.Register)
+                        {
+                            ir.Identifier.Name = name;
+                        }
+                    }
+                }
+            }
+
+            // Change parameter names for menus and widgets
+            if (BlockList[0] != null && BlockList[0].Instructions[0] is Assignment a2 && a2.Right is FunctionCall fc2)
+            {
+                if (fc2.Function.ToString().Contains("LUI.UIElement.new") && Parameters.Count() == 2)
+                {
+                    Parameters[0].Name = "HudRef";
+                    Parameters[1].Name = "InstanceRef";
+                }
+                else if (fc2.Function.ToString().Contains("CoD.Menu.NewForUIEditor") && Parameters.Count() == 1)
+                {
+                    Parameters[0].Name = "InstanceRef";
+                }
+            }
         }
 
         public void AnnotateEnvActFunctions()
@@ -2868,7 +2908,7 @@ namespace luadec.IR
                 {
                     str += "\t";
                 }
-                str += "end";
+                str += "end\n";
             }
             return str;
         }

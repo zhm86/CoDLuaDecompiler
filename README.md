@@ -20,7 +20,7 @@ This is made from Katalash's DSLuaDecompiler and this wouldn't be possible witho
 ### How to Use 
 
 - To decompile a couple/a single file(s) just drop it on the .exe
-- To decompile whole folders open the program and give it the path
+- To decompile whole folders open the program with the path as a parameter
 
 ## Download
 
