@@ -627,10 +627,13 @@ namespace luadec
             // Convert out of SSA and rename variables
             irfun.DropSSADropSubscripts();
             irfun.AnnotateLocalDeclarations();
-            irfun.ArgumentNames = fun.LocalsAt(0);
+            
             irfun.RenameVariables();
             irfun.Parenthesize();
             irfun.AddEmptyLines();
+            irfun.SearchInlineClosures();
+
+            irfun.RemoveUnnecessaryReturns();
 
             // Convert to AST
             irfun.ConvertToAST(true);

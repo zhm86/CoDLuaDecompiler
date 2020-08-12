@@ -83,6 +83,11 @@ namespace luadec.IR
         /// </summary>
         public List<Identifier> UpvalueBindings = new List<Identifier>();
 
+        /// <summary>
+        /// For when we don't want a new line after the closure
+        /// </summary>
+        public bool IsInline { get; set; } = false;
+
         public Function()
         {
             Parameters = new List<Identifier>();
@@ -1401,19 +1406,19 @@ namespace luadec.IR
                     var testfollow = b.Successors[0].Follow;
                     while (testfollow != null)
                     {
-                        if (testfollow.Instructions.Last() is Return || testfollow.IfOrphaned)
+                        if (testfollow.Instructions.Any() && testfollow.Instructions.Last() is Return || testfollow.IfOrphaned)
                         {
                             isDisjoint = true;
                             break;
                         }
                         testfollow = testfollow.Follow;
                     }
-                    if (maxNode == null && (b.Successors[0].Instructions.Last() is Return || b.Successors[0].IfOrphaned || isDisjoint))
+                    if (maxNode == null && (b.Successors[0].Instructions.Any() && b.Successors[0].Instructions.Last() is Return || b.Successors[0].IfOrphaned || isDisjoint))
                     {
                         // If the false branch leads to an isolated return node or an if-orphaned node, then we are if-orphaned, which essentially means we don't
                         // have a follow defined in the CFG. This means that to structure this, the if-orphaned node must be adopted by the next node with a CFG
                         // determined follow and this node will inherit that follow
-                        if ((b.Successors[1].Instructions.Last() is Return && b.Successors[1].Predecessors.Count() == 1) || b.Successors[1].IfOrphaned)
+                        if ((b.Successors[1].Instructions.Any() && b.Successors[1].Instructions.Last() is Return && b.Successors[1].Predecessors.Count() == 1) || b.Successors[1].IfOrphaned)
                         {
                             b.IfOrphaned = true;
                         }
@@ -1743,7 +1748,7 @@ namespace luadec.IR
                             highestFollow = iter.Follow;
                         }
                     }
-                    if (highestFollow != null && chain.Last().Successors.Count() == 2)
+                    if (highestFollow != null && chain.Any() && chain.Last().Successors.Count() == 2)
                     {
                         foreach (var c in chain)
                         {
@@ -1796,7 +1801,7 @@ namespace luadec.IR
                 {
                     foreach (var r in phi.Right)
                     {
-                        if (phi.Left != null && globalLiveness[phi.Left] != globalLiveness[r])
+                        if (phi != null && phi.Left != null && r != null && globalLiveness.ContainsKey(phi.Left) && globalLiveness.ContainsKey(r) && globalLiveness[phi.Left] != globalLiveness[r])
                         {
                             globalLiveness[phi.Left].UnionWith(globalLiveness[r]);
                             globalLiveness[r] = globalLiveness[phi.Left];
@@ -2254,6 +2259,38 @@ namespace luadec.IR
             }
         }
 
+        public void SearchInlineClosures()
+        {
+            foreach (var b in BlockList)
+            {
+                foreach (var i in b.Instructions)
+                {
+                    if (i is Assignment a && a.Right is FunctionCall fc)
+                    {
+                        foreach (var arg in fc.Args)
+                        {
+                            if (arg is Closure c)
+                            {
+                                c.Function.IsInline = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public void RemoveUnnecessaryReturns()
+        {
+            if (BlockList[^1].Instructions.Count == 0)
+            {
+                var b = BlockList[^2];
+                if (b.Instructions[^1] is Return r && r.ReturnExpressions.Count == 0)
+                {
+                    b.Instructions.Remove(r);
+                }
+            }
+        }
+
         public void ConvertToAST(bool lua51 = false)
         {
             // Traverse all the nodes in post-order and try to convert jumps to if statements
@@ -2314,7 +2351,7 @@ namespace luadec.IR
                     // Match a generic for with a predecessor initializer
                     else if (node.Instructions.Count > 0 && node.Instructions.Last() is Jump loopJump2 && loopJump2.Condition is BinOp loopCondition2 &&
                              loopInitializer.Instructions.Count >= 2 && loopInitializer.Instructions[loopInitializer.Instructions.Count - 2] is Assignment la &&
-                             la.Left[0] is IdentifierReference f && node.Instructions[0] is Assignment ba && ba.Right is FunctionCall fc &&
+                             la.Left.Any() && la.Left[0] is IdentifierReference f && node.Instructions[0] is Assignment ba && ba.Right is FunctionCall fc &&
                              fc.Function is IdentifierReference fci && fci.Identifier == f.Identifier)
                     {
                         var gfor = new GenericFor();
@@ -2601,7 +2638,7 @@ namespace luadec.IR
                     {
                         ifStatement.True = node.Successors[0];
                         ifStatement.True.MarkCodegened(DebugID);
-                        if (ifStatement.True.Instructions.Last() is Jump lj && !lj.Conditional)
+                        if (ifStatement.True.Instructions.Any() && ifStatement.True.Instructions.Last() is Jump lj && !lj.Conditional)
                         {
                             if (ifStatement.True.IsBreakNode)
                             {
@@ -2628,7 +2665,7 @@ namespace luadec.IR
                     {
                         ifStatement.False = node.Successors[1];
                         ifStatement.False.MarkCodegened(DebugID);
-                        if (ifStatement.False.Instructions.Last() is Jump fj && !fj.Conditional)
+                        if (ifStatement.False.Instructions.Any() && ifStatement.False.Instructions.Last() is Jump fj && !fj.Conditional)
                         {
                             if (ifStatement.False.IsBreakNode)
                             {
@@ -2753,7 +2790,7 @@ namespace luadec.IR
             }
 
             // Change parameter names for menus and widgets
-            if (BlockList[0] != null && BlockList[0].Instructions[0] is Assignment a2 && a2.Right is FunctionCall fc2)
+            if (BlockList[0] != null && BlockList[0].Instructions.Count > 0 && BlockList[0].Instructions[0] is Assignment a2 && a2.Right is FunctionCall fc2)
             {
                 if (fc2.Function.ToString().Contains("LUI.UIElement.new") && Parameters.Count() == 2)
                 {
@@ -2765,6 +2802,41 @@ namespace luadec.IR
                     Parameters[0].Name = "InstanceRef";
                 }
             }
+
+            // Add ModelRef as parameter and 
+            foreach (var b in BlockList)
+            {
+                foreach (var i in b.Instructions)
+                {
+                    if (i is Assignment a3 && a3.Right is FunctionCall c3 &&
+                        (c3.Function.ToString().Contains("subscribeToGlobalModel") || c3.Function.ToString().Contains("linkToElementModel")|| c3.Function.ToString().Contains("subscribeToModel"))) 
+                    {
+                        foreach (var arg in c3.Args)
+                        {
+                            if (arg is Closure c)
+                            {
+                                c.Function.ArgumentNames = new List<Local>(){new Local(){Name = "ModelRef"}};
+                            }
+                        }
+                    }
+
+                    if (i is Assignment a5 && a5.Right is FunctionCall fc5 && fc5.Function.ToString().Contains("registerEventHandler"))
+                    {
+                        if (fc5.Args.Count == 3 && fc5.Args[2] is Closure c2)
+                        {
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "Sender"}, new Local(){Name = "Event"}};
+                        }
+                    }
+                }
+            }
+            if (BlockList[0] != null && BlockList[0].Instructions.Count > 0 && BlockList[0].Instructions[0] is Assignment a4 && a4.Right is FunctionCall fc3)
+            {
+                if (fc3.Function.ToString().Contains("Engine.GetModelValue") && Parameters.Count() == 1)
+                {
+                    a4.Left[0].Identifier.Name = "ModelValue";
+                }
+            }
+            
         }
 
         public void AnnotateEnvActFunctions()
@@ -2928,7 +3000,9 @@ namespace luadec.IR
                 {
                     str += "\t";
                 }
-                str += "end\n";
+                str += "end";
+                if (!IsInline)
+                    str += "\n";
             }
             return str;
         }
