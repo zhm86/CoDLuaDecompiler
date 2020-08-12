@@ -43,3 +43,4 @@ bin/*
 *.ide-wal
 *.config
 .idea
+Properties/launchSettings.json
