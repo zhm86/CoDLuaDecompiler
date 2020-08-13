@@ -352,8 +352,34 @@ namespace luadec.IR
                 {
                     if (Instructions.IndexOf(jmp.Dest) == -1)
                     {
-                        throw new Exception("Control flow is corrupted");
+                        throw new Exception($"Control flow is corrupted in function {DebugID} @ instruction {i}");
                     }
+                }
+            }
+        }
+
+        public void RemoveUnusedLabels()
+        {
+            var usedLabels = new List<Label>();
+            var allLabelList = new Dictionary<int, Label>();
+            for (int i = 0; i < Instructions.Count(); i++)
+            {
+                if (Instructions[i] is Label l)
+                {
+                    allLabelList.Add(i, l);
+                }
+
+                if (Instructions[i] is Jump j)
+                {
+                    usedLabels.Add(j.Dest);
+                }
+            }
+            
+            foreach(var label in allLabelList)
+            {
+                if (!usedLabels.Contains(label.Value))
+                {
+                    Instructions.Remove(label.Value);
                 }
             }
         }
@@ -454,7 +480,7 @@ namespace luadec.IR
             // Second pass: Connect jumps to their basic blocks
             for (int b = 0; b < BlockList.Count(); b++)
             {
-                if (BlockList[b].Instructions.Count() > 0 && BlockList[b].Instructions.Last() is Jump jmp)
+                if (BlockList[b].Instructions.Any() && BlockList[b].Instructions.Last() is Jump jmp)
                 {
                     BlockList[b].Successors.Add(labelBasicBlockMap[jmp.Dest]);
                     labelBasicBlockMap[jmp.Dest].Predecessors.Add(BlockList[b]);
@@ -470,7 +496,7 @@ namespace luadec.IR
                 {
                     continue;
                 }
-                if (BlockList[b].Predecessors.Count() == 0)
+                if (!BlockList[b].Predecessors.Any())
                 {
                     foreach (var succ in BlockList[b].Successors)
                     {
@@ -484,7 +510,7 @@ namespace luadec.IR
             // Forth pass: Merge blocks that have a single successor and that successor has a single predecessor
             for (int b = 0; b < BlockList.Count(); b++)
             {
-                if (BlockList[b].Successors.Count() == 1 && BlockList[b].Successors[0].Predecessors.Count() == 1 && BlockList[b].Instructions.Last() is Jump)
+                if (BlockList[b].Successors.Count() == 1 && BlockList[b].Successors[0].Predecessors.Count() == 1 && BlockList[b].Instructions.Any() && BlockList[b].Instructions.Last() is Jump)
                 {
                     var curr = BlockList[b];
                     var succ = BlockList[b].Successors[0];
@@ -517,7 +543,7 @@ namespace luadec.IR
                 {
                     continue;
                 }
-                if (BlockList[b].Successors.Count() == 0)
+                if (!BlockList[b].Successors.Any())
                 {
                     BlockList[b].Successors.Add(EndBlock);
                 }
@@ -2315,6 +2341,17 @@ namespace luadec.IR
                     b.Instructions.Remove(r);
                 }
             }
+
+            foreach (var b in BlockList)
+            {
+                for (int i = b.Instructions.Count - 1; i >= 0; i--)
+                {
+                    if (b.Instructions[i] is Close c)
+                    {
+                        b.Instructions.Remove(c);
+                    }
+                }
+            }
         }
 
         public void ConvertToAST(bool lua51 = false)
@@ -2883,7 +2920,12 @@ namespace luadec.IR
             // Only add the function header if it isn't the lua file's main function
             if (DebugID != 0)
             {
+                
+#if DEBUG
+                str.Append($"function --[[Id: {DebugID}]] {funcName}(");
+#else
                 str.Append($"function {funcName}(");
+#endif
                 // Add all the parameters
                 for (int i = 0; i < Parameters.Count(); i++)
                 {
@@ -2903,9 +2945,10 @@ namespace luadec.IR
             }
             if (!IsControlFlowGraph)
             {
-                foreach (var inst in Instructions)
+                for(int n = 0; n < Instructions.Count; n++)
                 {
-                    str.Append($@"{inst.OpLocation:D3} ");
+                    var inst = Instructions[n];
+                    str.Append($@"{n}-{inst.OpLocation:D3} ");
                     for (int i = 0; i < IndentLevel; i++)
                     {
                         if (inst is Label && i == IndentLevel - 1)
@@ -2963,8 +3006,6 @@ namespace luadec.IR
                             str.Append("\t");
                         str.Append("(goto " + b.Successors[0] + ")" + "\n");
                     }
-
-                    str.Append("end");
                 }
             }
             IndentLevel -= 1;

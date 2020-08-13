@@ -540,6 +540,10 @@ namespace luadec
                                 closureFunc.UpvalueBindings.Add(irfun.UpvalueBindings[(int) c]);
                             }
                         }
+                        else
+                        {
+                            instructions.Add(new Close());
+                        }
                         break;
                     case LuaOpCode.HKS_OPCODE_SETFIELD:
                     case LuaOpCode.HKS_OPCODE_SETFIELD_R1:
@@ -570,6 +574,7 @@ namespace luadec
                     case LuaOpCode.HKS_OPCODE_CLOSE:
                         // LUA source : close all variables in the stack up to (>=) R(A)
                         // Let's ignore this for now, doesn't print anything and don't know if it affects SSA
+                        instructions.Add(new Close());
                         break;
                     default:
                         Console.WriteLine($@"Missing op: {opcode} {a} {b} {c}");
@@ -593,6 +598,7 @@ namespace luadec
             irfun.MergeConditionalAssignments();
             //irfun.PeepholeOptimize();
             irfun.CheckControlFlowIntegrity();
+            irfun.RemoveUnusedLabels();
 
             // Control flow graph construction and SSA conversion
             irfun.ConstructControlFlowGraph();
