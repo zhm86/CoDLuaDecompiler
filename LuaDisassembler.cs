@@ -542,7 +542,7 @@ namespace luadec
                         }
                         else
                         {
-                            instructions.Add(new Close());
+                            instructions.Add(new Data());
                         }
                         break;
                     case LuaOpCode.HKS_OPCODE_SETFIELD:
@@ -590,7 +590,6 @@ namespace luadec
             irfun.ApplyLabels();
 
             // Simple post-ir and idiom recognition analysis passes
-            irfun.ClearDataInstructions();
             irfun.ResolveVarargListAssignment(SymbolTable);
             irfun.MergeMultiBoolAssignment();
             irfun.EliminateRedundantAssignments();
@@ -599,6 +598,7 @@ namespace luadec
             //irfun.PeepholeOptimize();
             irfun.CheckControlFlowIntegrity();
             irfun.RemoveUnusedLabels();
+            irfun.ClearDataInstructions();
 
             // Control flow graph construction and SSA conversion
             irfun.ConstructControlFlowGraph();
