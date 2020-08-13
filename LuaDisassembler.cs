@@ -51,17 +51,13 @@ namespace luadec
         private static IR.Constant ToConstantIR(Constant con)
         {
             if (con.Type == ConstantType.TNumber)
-            {
                 return new IR.Constant(con.NumberValue);
-            }
-            else if (con.Type == ConstantType.TString)
-            {
+            if (con.Type == ConstantType.TString)
                 return new IR.Constant(con.StringValue);
-            }
-            else if (con.Type == ConstantType.TBoolean)
-            {
+            if (con.Type == ConstantType.TBoolean)
                 return new IR.Constant(con.BoolValue);
-            }
+            if (con.Type == ConstantType.THash)
+                return new IR.Constant(con.HashValue);
             return new IR.Constant(IR.Constant.ConstantType.ConstNil);
         }
 
@@ -532,7 +528,7 @@ namespace luadec
 
                             if (closureFunc == null)
                             {
-                                throw new Exception("Cant find closure for data");
+                                continue;
                             }
 
                             if (a == 1)
@@ -590,7 +586,7 @@ namespace luadec
 
             // Simple post-ir and idiom recognition analysis passes
             irfun.ClearDataInstructions();
-            irfun.ResolveVarargListAssignment();
+            irfun.ResolveVarargListAssignment(SymbolTable);
             irfun.MergeMultiBoolAssignment();
             irfun.EliminateRedundantAssignments();
             irfun.MergeConditionalJumps();

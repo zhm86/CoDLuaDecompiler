@@ -32,7 +32,7 @@ namespace luadec.IR
             ret += "\n";
             for (int i = 0; i < indentLevel; i++)
             {
-                ret += "    ";
+                ret += "\t";
             }
             if (IsPostTested)
             {

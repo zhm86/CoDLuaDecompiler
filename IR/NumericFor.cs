@@ -34,7 +34,7 @@ namespace luadec.IR
             ret += "\n";
             for (int i = 0; i < indentLevel; i++)
             {
-                ret += "    ";
+                ret += "\t";
             }
             ret += "end";
             if (Follow != null && Follow.Instructions.Count() > 0)

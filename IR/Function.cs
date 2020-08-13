@@ -583,13 +583,19 @@ namespace luadec.IR
                     {
                         lastIndeterminantRet = a.Left[0].Identifier;
                     }
+
+                    // Vararg can also set the indeterminant register number
+                    if (i is Assignment a3 && a3.IsIndeterminantVararg)
+                    {
+                        lastIndeterminantRet = a3.Left[0].Identifier;
+                    }
                 }
             }
         }
 
-        public void ResolveVarargListAssignment()
+        public void ResolveVarargListAssignment(SymbolTable symbolTable)
         {
-            for (int i = 0; i < Instructions.Count() - 2; i++)
+            /*for (int i = 0; i < Instructions.Count() - 2; i++)
             {
                 if (Instructions[i] is Assignment a1 && a1.Right is InitializerList l1 && l1.Exprs.Count() == 0 &&
                     Instructions[i + 1] is Assignment a2 && a2.IsIndeterminantVararg && a1.VarargAssignmentReg == (a2.VarargAssignmentReg - 1) &&
@@ -598,6 +604,16 @@ namespace luadec.IR
                     l1.Exprs.Add(new IR.Constant(Constant.ConstantType.ConstVarargs));
                     a1.LocalAssignments = a3.LocalAssignments;
                     Instructions.RemoveRange(i + 1, 2);
+                }
+            }*/
+            // Pretty hacky way to do this, don't know another way to add it if the table already has items
+            for (int i = 0; i < Instructions.Count - 1; i++)
+            {
+                if (Instructions[i] is Assignment a2 && a2.IsIndeterminantVararg &&
+                    Instructions[i + 1] is Assignment a3 && a3.IsIndeterminantVararg)
+                {
+                    Instructions[i] = new Assignment(new List<IR.IdentifierReference>(), new FunctionCall(new IdentifierReference(new Identifier() {Name = "table.insert", IType = Identifier.IdentifierType.Global}), new List<Expression>(){new IR.IdentifierReference(symbolTable.GetRegister(a3.VarargAssignmentReg)), new IR.IdentifierReference(symbolTable.GetVarargs())}));
+                    Instructions.RemoveAt(i + 1);
                 }
             }
         }
@@ -2261,19 +2277,29 @@ namespace luadec.IR
 
         public void SearchInlineClosures()
         {
+            void SearchClosure(FunctionCall fc)
+            {
+                foreach (var arg in fc.Args)
+                {
+                    if (arg is Closure c)
+                    {
+                        c.Function.IsInline = true;
+                    }
+
+                    if (arg is FunctionCall fc2)
+                    {
+                        SearchClosure(fc2);
+                    }
+                }
+            }
+            
             foreach (var b in BlockList)
             {
                 foreach (var i in b.Instructions)
                 {
                     if (i is Assignment a && a.Right is FunctionCall fc)
                     {
-                        foreach (var arg in fc.Args)
-                        {
-                            if (arg is Closure c)
-                            {
-                                c.Function.IsInline = true;
-                            }
-                        }
+                        SearchClosure(fc);
                     }
                 }
             }
@@ -2827,6 +2853,14 @@ namespace luadec.IR
                             c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "Sender"}, new Local(){Name = "Event"}};
                         }
                     }
+                    
+                    if (i is Assignment a6 && a6.Right is FunctionCall fc6 && fc6.Function.ToString().Contains("LUI.OverrideFunction_CallOriginalSecond"))
+                    {
+                        if (fc6.Args.Count == 3 && fc6.Args[2] is Closure c2)
+                        {
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "Sender"}};
+                        }
+                    }
                 }
             }
             if (BlockList[0] != null && BlockList[0].Instructions.Count > 0 && BlockList[0].Instructions[0] is Assignment a4 && a4.Right is FunctionCall fc3)
@@ -2836,113 +2870,57 @@ namespace luadec.IR
                     a4.Left[0].Identifier.Name = "ModelValue";
                 }
             }
-            
         }
-
-        public void AnnotateEnvActFunctions()
+        
+        /// <summary>
+        /// Returns a string with a formatted string of the function
+        /// </summary>
+        /// <param name="funcName"></param>
+        /// <returns></returns>
+        public string PrettyPrint(string funcName = "")
         {
-            var EnvJapaneseMap = new Dictionary<string, string>();
-            var EnvIDMap = new Dictionary<int, string>();
-            var nameIdentifierMap = new Dictionary<string, Identifier>();
-            foreach (var env in Annotations.ESDFunctions.ESDEnvs)
-            {
-                EnvJapaneseMap.Add(env.JapaneseName, env.EnglishEnum);
-                EnvIDMap.Add(env.ID, env.EnglishEnum);
-                var id = new Identifier();
-                id.Name = env.EnglishEnum;
-                id.IType = Identifier.IdentifierType.Global;
-                nameIdentifierMap.Add(env.EnglishEnum, id);
-            }
-
-            foreach (var b in BlockList)
-            {
-                foreach (var i in b.Instructions)
-                {
-                    foreach (var e in i.GetExpressions())
-                    {
-                        if (e is FunctionCall f && f.Function is IdentifierReference ir && ir.Identifier.Name == "env")
-                        {
-                            if (f.Args.Count() > 0)
-                            {
-                                if (f.Args[0] is Constant c1 && c1.ConstType == Constant.ConstantType.ConstString)
-                                {
-                                    if (EnvJapaneseMap.ContainsKey(c1.String))
-                                    {
-                                        f.Args[0] = new IdentifierReference(nameIdentifierMap[EnvJapaneseMap[c1.String]]);
-                                    }
-                                }
-                                else if (f.Args[0] is Constant c2 && c2.ConstType == Constant.ConstantType.ConstNumber)
-                                {
-                                    if (EnvIDMap.ContainsKey((int)c2.Number))
-                                    {
-                                        f.Args[0] = new IdentifierReference(nameIdentifierMap[EnvIDMap[(int)c2.Number]]);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        public string PrettyPrint(string funname = null)
-        {
-            string str = "";
+            var str = new StringBuilder();
+            // Only add the function header if it isn't the lua file's main function
             if (DebugID != 0)
             {
-                if (funname == null)
-                {
-                    //string str = $@"function {DebugID} (";
-                    str = $@"function (";
-                }
-                else
-                {
-                    //str = $@"function {DebugID} {funname}(";
-                    str = $@"function {funname}(";
-                }
+                str.Append($"function {funcName}(");
+                // Add all the parameters
                 for (int i = 0; i < Parameters.Count(); i++)
                 {
-                    str += Parameters[i].ToString();
-                    if (i != Parameters.Count() - 1)
-                    {
-                        str += ", ";
-                    }
+                    if (i != 0)
+                        str.Append(", ");
+                    str.Append(Parameters[i]);
                 }
+                // Add the vararg if the function has it
                 if (IsVarargs)
                 {
-                    if (Parameters.Count() > 0)
-                    {
-                        str += ", ...";
-                    }
-                    else
-                    {
-                        str += "...";
-                    }
+                    if (Parameters.Any())
+                        str.Append(", ");
+                    str.Append("...");
                 }
-                str += ")\n";
+                str.Append(")\n");
                 IndentLevel += 1;
             }
             if (!IsControlFlowGraph)
             {
                 foreach (var inst in Instructions)
                 {
-                    str += $@"{inst.OpLocation:D3} ";
+                    str.Append($@"{inst.OpLocation:D3} ");
                     for (int i = 0; i < IndentLevel; i++)
                     {
                         if (inst is Label && i == IndentLevel - 1)
                         {
-                            str += "   ";
+                            str.Append("   ");
                             continue;
                         }
-                        str += "\t";
+                        str.Append("\t");
                     }
-                    str += inst.ToString() + "\n";
+                    str.Append(inst + "\n");
                 }
             }
             else if (IsAST)
             {
-                str += BeginBlock.PrintBlock(IndentLevel);
-                str += "\n";
+                str.Append(BeginBlock.PrintBlock(IndentLevel) + "\n");
             }
             else
             {
@@ -2957,27 +2935,23 @@ namespace luadec.IR
                     {
                         if (i == IndentLevel - 1)
                         {
-                            str += "   ";
+                            str.Append("   ");
                             continue;
                         }
-                        str += "\t";
+                        str.Append("\t");
                     }
-                    str += b.ToStringWithLoop() + "\n";
+                    str.Append(b.ToStringWithLoop() + "\n");
                     foreach (var inst in b.PhiFunctions.Values)
                     {
                         for (int i = 0; i < IndentLevel; i++)
-                        {
-                            str += "\t";
-                        }
-                        str += inst.ToString() + "\n";
+                            str.Append("\t");
+                        str.Append(inst + "\n");
                     }
                     foreach (var inst in b.Instructions)
                     {
                         for (int i = 0; i < IndentLevel; i++)
-                        {
-                            str += "\t";
-                        }
-                        str += inst.ToString() + "\n";
+                            str.Append("\t");
+                        str.Append(inst + "\n");
                     }
 
                     // Insert an implicit goto for fallthrough blocks if the destination isn't actually the next block
@@ -2986,25 +2960,23 @@ namespace luadec.IR
                         (!(lastinst is Jump) && !(lastinst is Return) && b.Successors[0].BlockID != (b.BlockID + 1))))
                     {
                         for (int i = 0; i < IndentLevel; i++)
-                        {
-                            str += "    ";
-                        }
-                        str += "(goto " + b.Successors[0].ToString() + ")" + "\n";
+                            str.Append("\t");
+                        str.Append("(goto " + b.Successors[0] + ")" + "\n");
                     }
+
+                    str.Append("end");
                 }
             }
             IndentLevel -= 1;
             if (DebugID != 0)
             {
                 for (int i = 0; i < IndentLevel; i++)
-                {
-                    str += "\t";
-                }
-                str += "end";
+                    str.Append("\t");
+                str.Append("end");
                 if (!IsInline)
-                    str += "\n";
+                    str.Append("\n");
             }
-            return str;
+            return str.ToString();
         }
 
         public override string ToString()

@@ -43,12 +43,14 @@ namespace luadec.IR
             ConstTable,
             ConstVarargs,
             ConstNil,
+            ConstHash
         }
 
         public ConstantType ConstType;
         public double Number;
         public string String;
         public bool Boolean;
+        public ulong Hash;
 
         public Constant(double num)
         {
@@ -59,13 +61,19 @@ namespace luadec.IR
         public Constant(string str)
         {
             ConstType = ConstantType.ConstString;
-            String = str;
+            String = str.Replace("\n", "\\n");
         }
 
         public Constant(bool b)
         {
             ConstType = ConstantType.ConstBool;
             Boolean = b;
+        }
+
+        public Constant(ulong h)
+        {
+            ConstType = ConstantType.ConstHash;
+            Hash = h;
         }
 
         public Constant(ConstantType typ)
@@ -83,6 +91,8 @@ namespace luadec.IR
                     return "\"" + String + "\"";
                 case ConstantType.ConstBool:
                     return Boolean ? "true" : "false";
+                case ConstantType.ConstHash:
+                    return $"0x{Hash & 0xFFFFFFFFFFFFFFF:X}";
                 case ConstantType.ConstTable:
                     return "{}";
                 case ConstantType.ConstVarargs:
@@ -436,6 +446,70 @@ namespace luadec.IR
             }
             ret += "}";
             return ret;
+        }
+    }
+
+    // Added for when I'm going to work on better list
+    public class ListAssignment : Expression
+    {
+        public Expression Left { get; set; }
+        public Expression Right { get; set; }
+        
+        public override void Parenthesize()
+        {
+            Left.Parenthesize();
+            Right.Parenthesize();
+        }
+        
+        public override HashSet<Identifier> GetUses(bool regonly)
+        {
+            var ret = new HashSet<Identifier>();
+            ret.UnionWith(Left.GetUses(regonly));
+            ret.UnionWith(Right.GetUses(regonly));
+            return ret;
+        }
+        
+        public override void RenameUses(Identifier orig, Identifier newi)
+        {
+            Left.RenameUses(orig, newi);
+            Right.RenameUses(orig, newi);
+        }
+        
+        public override bool ReplaceUses(Identifier orig, Expression sub)
+        {
+            bool replaced = false;
+            if (ShouldReplace(orig, Left))
+            {
+                Left = sub;
+                replaced = true;
+            }
+            else
+            {
+                replaced = replaced || Left.ReplaceUses(orig, sub);
+            }
+            if (ShouldReplace(orig, Right))
+            {
+                Right = sub;
+                replaced = true;
+            }
+            else
+            {
+                replaced = replaced || Right.ReplaceUses(orig, sub);
+            }
+            return replaced;
+        }
+        
+        public override List<Expression> GetExpressions()
+        {
+            var ret = new List<Expression>() { this };
+            ret.AddRange(Left.GetExpressions());
+            ret.AddRange(Right.GetExpressions());
+            return ret;
+        }
+
+        public override string ToString()
+        {
+            return $"{Left} = {Right}";
         }
     }
 

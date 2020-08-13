@@ -173,7 +173,7 @@ namespace luadec.CFG
                 var inst = Instructions[j];
                 for (int i = 0; i < indentLevel; i++)
                 {
-                    ret += "    ";
+                    ret += "\t";
                 }
                 ret += inst.WriteLua(indentLevel);
                 if (!(inst is IR.IfStatement) && j != Instructions.Count() - 1)

@@ -45,7 +45,7 @@ namespace luadec.IR
                 {
                     for (int i = 0; i < indentLevel; i++)
                     {
-                        ret += "    ";
+                        ret += "\t";
                     }
                     ret += "else\n";
                     ret += False.PrintBlock(indentLevel + 1);
@@ -59,7 +59,7 @@ namespace luadec.IR
             {
                 for (int i = 0; i < indentLevel; i++)
                 {
-                    ret += "    ";
+                    ret += "\t";
                 }
                 ret += "end";
             }
