@@ -174,6 +174,10 @@ namespace luadec.IR
                     Instructions.RemoveAt(i);
                     i++;
                 }
+                else if (Instructions[i] is Close c)
+                {
+                    Instructions.RemoveAt(i);
+                }
             }
         }
 
@@ -792,7 +796,7 @@ namespace luadec.IR
                         if (d != EndBlock && !d.PhiFunctions.ContainsKey(g))
                         {
                             // Heuristic: if the block is just a single return, we don't need phi functions
-                            if (d.Instructions.First() is Return r && r.ReturnExpressions.Count() == 0)
+                            if (d.Instructions.Any() && d.Instructions.First() is Return r && r.ReturnExpressions.Count() == 0)
                             {
                                 continue;
                             }
@@ -2342,16 +2346,7 @@ namespace luadec.IR
                 }
             }
 
-            foreach (var b in BlockList)
-            {
-                for (int i = b.Instructions.Count - 1; i >= 0; i--)
-                {
-                    if (b.Instructions[i] is Close c)
-                    {
-                        b.Instructions.Remove(c);
-                    }
-                }
-            }
+            
         }
 
         public void ConvertToAST(bool lua51 = false)
@@ -2920,12 +2915,7 @@ namespace luadec.IR
             // Only add the function header if it isn't the lua file's main function
             if (DebugID != 0)
             {
-                
-#if DEBUG
-                str.Append($"function --[[Id: {DebugID}]] {funcName}(");
-#else
                 str.Append($"function {funcName}(");
-#endif
                 // Add all the parameters
                 for (int i = 0; i < Parameters.Count(); i++)
                 {
