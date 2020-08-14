@@ -1036,34 +1036,48 @@ namespace luadec.IR
         /// </summary>
         public void DetectListInitializers()
         {
-            foreach (var b in BlockList)
+            bool changed = true;
+            while (changed)
             {
-                for (int i = 0; i < b.Instructions.Count(); i++)
+                changed = false;
+                foreach (var b in BlockList)
                 {
-                    if (b.Instructions[i] is Assignment a && a.Left.Count() == 1 && !a.Left[0].HasIndex && a.Right is InitializerList il && il.Exprs.Count() == 0)
+                    for (int i = 0; i < b.Instructions.Count(); i++)
                     {
-                        // Eat up any statements that follow that match the initializer list pattern
-                        int initIndex = 1;
-                        while (i + 1 < b.Instructions.Count())
+                        if (b.Instructions[i] is Assignment a && a.Left.Count() == 1 && !a.Left[0].HasIndex && a.Right is InitializerList il && il.Exprs.Count() == 0)
                         {
-                            if (b.Instructions[i + 1] is Assignment a2 && a2.Left.Count() == 1 && a2.Left[0].Identifier == a.Left[0].Identifier && a2.Left[0].HasIndex &&
-                                a2.Left[0].TableIndices[0] is Constant c && c.Number == (double)initIndex)
+                            // Eat up any statements that follow that match the initializer list pattern
+                            int initIndex = 1;
+                            while (i + 1 < b.Instructions.Count())
                             {
-                                il.Exprs.Add(a2.Right);
-                                if (a2.LocalAssignments != null)
+                                if (b.Instructions[i + 1] is Assignment a2 && a2.Left.Count() == 1 && a2.Left[0].Identifier == a.Left[0].Identifier && a2.Left[0].HasIndex)
                                 {
-                                    a.LocalAssignments = a2.LocalAssignments;
+                                    if (a2.Left[0].TableIndices[0] is Constant c && Math.Abs(c.Number - initIndex) < 0.01)
+                                    {
+                                        il.Exprs.Add(a2.Right);
+                                    }
+                                    else
+                                    {
+                                        il.Exprs.Add(new ListAssignment(a2.Left[0].TableIndices[0], a2.Right));
+                                    }
+                                    if (a2.LocalAssignments != null)
+                                    {
+                                        a.LocalAssignments = a2.LocalAssignments;
+                                    }
+                                    a2.Left[0].Identifier.UseCount--;
+                                    b.Instructions.RemoveAt(i + 1);
+                                    initIndex++;
+                                    changed = true;
                                 }
-                                a2.Left[0].Identifier.UseCount--;
-                                b.Instructions.RemoveAt(i + 1);
-                                initIndex++;
-                            }
-                            else
-                            {
-                                break;
+                                else
+                                {
+                                    break;
+                                }
                             }
                         }
                     }
+                    // Do this after every pass so we are sure tables in tables are handled aswell
+                    PerformExpressionPropogation();
                 }
             }
         }
@@ -2307,7 +2321,7 @@ namespace luadec.IR
 
         public void SearchInlineClosures()
         {
-            void SearchClosure(FunctionCall fc)
+            void SearchClosureFunctionCall(FunctionCall fc)
             {
                 foreach (var arg in fc.Args)
                 {
@@ -2316,9 +2330,40 @@ namespace luadec.IR
                         c.Function.IsInline = true;
                     }
 
+                    if (arg is InitializerList il)
+                    {
+                        SearchClosureList(il);
+                    }
+
                     if (arg is FunctionCall fc2)
                     {
-                        SearchClosure(fc2);
+                        SearchClosureFunctionCall(fc2);
+                    }
+                }
+            }
+            
+            void SearchClosureList(InitializerList list)
+            {
+                foreach (var expression in list.Exprs)
+                {
+                    if (expression is Closure c)
+                    {
+                        c.Function.IsInline = true;
+                    }
+
+                    if (expression is ListAssignment la && la.Right is Closure c2)
+                    {
+                        c2.Function.IsInline = true;
+                    }
+                    
+                    if (expression is ListAssignment la2 && la2.Right is InitializerList il)
+                    {
+                        SearchClosureList(il);
+                    }
+
+                    if (expression is InitializerList il2)
+                    {
+                        SearchClosureList(il2);
                     }
                 }
             }
@@ -2329,7 +2374,12 @@ namespace luadec.IR
                 {
                     if (i is Assignment a && a.Right is FunctionCall fc)
                     {
-                        SearchClosure(fc);
+                        SearchClosureFunctionCall(fc);
+                    }
+
+                    if (i is Assignment a2 && a2.Right is InitializerList il)
+                    {
+                        SearchClosureList(il);
                     }
                 }
             }
@@ -2900,6 +2950,23 @@ namespace luadec.IR
                 if (fc3.Function.ToString().Contains("Engine.GetModelValue") && Parameters.Count() == 1)
                 {
                     a4.Left[0].Identifier.Name = "ModelValue";
+                }
+            }
+
+            foreach (var b in BlockList)
+            {
+                foreach (var i in b.Instructions)
+                {
+                    if (i is Assignment a3 && a3.Right is FunctionCall c3 && c3.Function.ToString().Contains("mergeStateConditions") && c3.Args.Count == 2 && c3.Args[1] is InitializerList il)
+                    {
+                        foreach (var expression in il.Exprs)
+                        {
+                            if (expression is InitializerList il2 && il2.Exprs.Count == 2 && il2.Exprs[1] is ListAssignment la && la.Left is Constant c && c.String == "condition" && la.Right is Closure cl)
+                            {
+                                cl.Function.ArgumentNames = new List<Local>() {new Local(){Name = "HudRef"}, new Local(){Name = "ItemRef"}, new Local(){Name = "UpdateTable"}};
+                            }
+                        }
+                    }
                 }
             }
         }

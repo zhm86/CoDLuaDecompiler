@@ -454,7 +454,13 @@ namespace luadec.IR
     {
         public Expression Left { get; set; }
         public Expression Right { get; set; }
-        
+
+        public ListAssignment(Expression left, Expression right)
+        {
+            Left = left;
+            Right = right;
+        }
+
         public override void Parenthesize()
         {
             Left.Parenthesize();
@@ -509,7 +515,13 @@ namespace luadec.IR
 
         public override string ToString()
         {
-            return $"{Left} = {Right}";
+            // If it's a string constant, we need it without the "'s and with other values we need a casket
+            string left;
+            if (Left is Constant c && c.String != null)
+                left = Left.ToString()?.Replace("\"", "");
+            else
+                left = $"[{Left}]";
+            return $"{left} = {Right}";
         }
     }
 

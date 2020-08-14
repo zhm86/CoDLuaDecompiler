@@ -614,7 +614,6 @@ namespace luadec
             irfun.EliminateDeadAssignments(true);
             irfun.PerformExpressionPropogation();
             irfun.DetectListInitializers();
-            irfun.PerformExpressionPropogation();
 
             // CFG passes
             irfun.StructureCompoundConditionals();
