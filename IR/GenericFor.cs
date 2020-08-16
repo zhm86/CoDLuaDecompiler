@@ -29,7 +29,9 @@ namespace luadec.IR
             }
             ret = $@"for {Iterator} do" + "\n";
 
+            Function.IndentLevel += 1;
             ret += Body.PrintBlock(indentLevel + 1);
+            Function.IndentLevel -= 1;
             ret += "\n";
             for (int i = 0; i < indentLevel; i++)
             {

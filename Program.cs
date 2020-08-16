@@ -11,6 +11,9 @@ namespace luadec
 {
     class Program
     {
+        public static int SsaWrongcount = 0;
+        public static int BlockAlreadyCodegenned = 0;
+        public static int BlockNotUsed = 0;
         static void Main(string[] args)
         {
             Console.WriteLine("CoD Havok Decompiler made from katalash's DSLuaDecompiler");
@@ -86,6 +89,9 @@ namespace luadec
             var prevColor = Console.ForegroundColor;
 
             Console.ForegroundColor = ConsoleColor.Blue;
+            /*Console.WriteLine($"ssaWrongcount: {SsaWrongcount}");
+            Console.WriteLine($"blockAlreadyCodegenned: {BlockAlreadyCodegenned}");
+            Console.WriteLine($"BlockNotUsed: {BlockNotUsed}");*/
             Console.WriteLine($"Decompilation complete! Processed {count} files with {errors} errors.");
             Console.ForegroundColor = prevColor;
             Console.ReadLine();

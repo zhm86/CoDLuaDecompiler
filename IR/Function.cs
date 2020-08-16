@@ -309,7 +309,7 @@ namespace luadec.IR
                     Instructions[i + 1] is Assignment asscond1 && asscond1.Left.Count() == 1 && asscond1.Left[0] is IdentifierReference assignee && 
                     asscond1.Right is Constant c1 && c1.ConstType == Constant.ConstantType.ConstBool && !c1.Boolean &&
                     Instructions[i + 2] is Jump jmp2 && !jmp2.Conditional &&
-                    Instructions[i + 3] is Label label1 && label1 == jmp.Dest &&
+                    Instructions[i + 3] is Label label1 && label1 == jmp.Dest && label1.UsageCount == 1 &&
                     Instructions[i + 4] is Assignment asscond2 && asscond2.Left.Count() == 1 && asscond2.Left[0] is IdentifierReference assignee2 && 
                     assignee.Identifier == assignee2.Identifier && asscond2.Right is Constant c2 && c2.ConstType == Constant.ConstantType.ConstBool && c2.Boolean &&
                     Instructions[i + 5] is Label label2 && label2 == jmp2.Dest)
@@ -1044,10 +1044,10 @@ namespace luadec.IR
                 {
                     for (int i = 0; i < b.Instructions.Count(); i++)
                     {
-                        if (b.Instructions[i] is Assignment a && a.Left.Count() == 1 && !a.Left[0].HasIndex && a.Right is InitializerList il && il.Exprs.Count() == 0)
+                        if (b.Instructions[i] is Assignment a && a.Left.Count() == 1 && !a.Left[0].HasIndex && a.Right is InitializerList il /*&& il.Exprs.Count() == 0*/)
                         {
                             // Eat up any statements that follow that match the initializer list pattern
-                            int initIndex = 1;
+                            int initIndex = il.Exprs.Count() + 1;
                             while (i + 1 < b.Instructions.Count())
                             {
                                 if (b.Instructions[i + 1] is Assignment a2 && a2.Left.Count() == 1 && a2.Left[0].Identifier == a.Left[0].Identifier && a2.Left[0].HasIndex)
@@ -1380,8 +1380,7 @@ namespace luadec.IR
             for (int i = 0; i < BlockList.Count(); i++)
             {
                 blockIDMap.Add(BlockList[i], i);
-                var node = new CFG.AbstractGraph.Node();
-                node.OriginalBlock = BlockList[i];
+                var node = new CFG.AbstractGraph.Node {OriginalBlock = BlockList[i]};
                 if (i == BlockList.Count() - 1)
                 {
                     node.IsTerminal = true;
@@ -1431,6 +1430,8 @@ namespace luadec.IR
             HashSet<CFG.BasicBlock> Visit(CFG.BasicBlock b)
             {
                 var unresolved = new HashSet<CFG.BasicBlock>();
+                // This makes it loop in descending order
+                // for (all nodes m in descending order)
                 foreach (var succ in b.DominanceTreeSuccessors)
                 {
                     if (debugVisited.Contains(succ))
@@ -1441,6 +1442,7 @@ namespace luadec.IR
                     unresolved.UnionWith(Visit(succ));
                 }
 
+                // if ((nodeType(m) == 2-way) ^ (inHeadLatch(m) == false)
                 if (b.Successors.Count() == 2 && b.Instructions.Last() is Jump jmp && (!b.IsLoopHead || b.LoopType != CFG.LoopType.LoopPretested))
                 {
                     int maxEdges = 0;
@@ -1499,6 +1501,7 @@ namespace luadec.IR
                         maxNode = b.Successors[1];
                     }
 
+                    
                     if (maxNode != null)
                     {
                         b.Follow = maxNode;
@@ -1554,6 +1557,10 @@ namespace luadec.IR
                             ur.Follow = b.LoopLatch;
                         }
                         // Otherwise the detected latch (of multiple) is probably within an if statement and the head is the true follow
+                        else if (ur.Successors.Any())
+                        {
+                            ur.Follow = ur.Successors.Last();
+                        }
                         else
                         {
                             ur.Follow = b;
@@ -1571,6 +1578,10 @@ namespace luadec.IR
             foreach (var u in unmatched)
             {
                 u.Follow = EndBlock;
+                if (u.Successors.Any())
+                {
+                    u.Follow = u.Successors.Last();
+                }
             }
         }
 
@@ -1629,11 +1640,14 @@ namespace luadec.IR
 
         public void StructureCompoundConditionals()
         {
+            // Loop until nothing changes anymore
             bool changed = true;
             while (changed)
             {
                 changed = false;
+                // Give each block their reverse index
                 NumberReversePostorder();
+                // Loop over all blocks in reverse
                 foreach (var node in PostorderTraversal(false))
                 {
                     if (node.Instructions.Count > 0 && node.Instructions.Last() is Jump c && c.Conditional && c.Condition is BinOp bo && bo.Operation == BinOp.OperationType.OpLoopCompare)
@@ -1882,7 +1896,8 @@ namespace luadec.IR
                         {
                             if (live != def && live.OriginalIdentifier == def.OriginalIdentifier)
                             {
-                                Console.WriteLine($@"Warning: SSA live range interference detected in function {DebugID}. Results are probably wrong.");
+                                Program.SsaWrongcount++;
+                                Console.WriteLine($@"Warning: SSA live range interference detected in function {DebugID}. {live.OriginalIdentifier} Results are probably wrong.");
                             }
                         }
                         liveNow.Remove(def);
@@ -2416,7 +2431,7 @@ namespace luadec.IR
                     var loopInitializer = node.Predecessors.First(x => x != node.LoopLatch);
 
                     // Match a numeric for
-                    if (node.Instructions.Last() is Jump loopJump && loopJump.Condition is BinOp loopCondition && loopCondition.Operation == BinOp.OperationType.OpLoopCompare)
+                    if (node.Instructions.Last() is Jump loopJump && loopJump.Condition is BinOp loopCondition && loopCondition.Operation == BinOp.OperationType.OpLoopCompare && node.Instructions[^2] is Assignment aaa3 && aaa3.Right != null && aaa3.Right is BinOp)
                     {
                         var nfor = new NumericFor();
                         nfor.Limit = loopCondition.Right;
@@ -2815,6 +2830,7 @@ namespace luadec.IR
             {
                 if (b != BeginBlock && !b.Codegened())
                 {
+                    Program.BlockNotUsed++;
                     Console.WriteLine($@"Warning: block_{b.BlockID} in function {DebugID} was not used in code generation. THIS IS LIKELY A DECOMPILER BUG!");
                 }
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using luadec.IR;
 
 namespace luadec.CFG
 {
@@ -141,6 +142,7 @@ namespace luadec.CFG
         {
             if (IsCodegened)
             {
+                Program.BlockAlreadyCodegenned++;
                 Console.WriteLine("Warning: Function " + debugFuncID + " using already codegened block " + ToString());
             }
             IsCodegened = true;
@@ -159,6 +161,11 @@ namespace luadec.CFG
         public string GetName()
         {
             return $@"basicblock_{BlockID}";
+        }
+
+        public bool IsTwoWay()
+        {
+            return Successors.Count() == 2 && Instructions.Last() is Jump;
         }
 
         public string PrintBlock(int indentLevel, bool infloopprint=false)

@@ -621,6 +621,7 @@ namespace luadec
             irfun.DetectLoopConditionals();
             irfun.DetectTwoWayConditionals();
             irfun.SimplifyIfElseFollowChain();
+            
             irfun.EliminateDeadAssignments(true);
             irfun.PerformExpressionPropogation();
             irfun.VerifyLivenessNoInterference();

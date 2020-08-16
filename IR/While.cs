@@ -28,7 +28,9 @@ namespace luadec.IR
                 ret = $@"while {Condition} do" + "\n";
             }
             
+            Function.IndentLevel += 1;
             ret += Body.PrintBlock(indentLevel + 1, IsBlockInlined);
+            Function.IndentLevel -= 1;
             ret += "\n";
             for (int i = 0; i < indentLevel; i++)
             {

@@ -30,7 +30,9 @@ namespace luadec.IR
             }
             if (True != null)
             {
+                Function.IndentLevel += 1;
                 ret += True.PrintBlock(indentLevel + 1);
+                Function.IndentLevel -= 1;
             }
             if (False != null)
             {
@@ -48,7 +50,9 @@ namespace luadec.IR
                         ret += "\t";
                     }
                     ret += "else\n";
+                    Function.IndentLevel += 1;
                     ret += False.PrintBlock(indentLevel + 1);
+                    Function.IndentLevel -= 1;
                 }
             }
             if (!IsElseIf)
