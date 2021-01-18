@@ -81,6 +81,7 @@ namespace luadec
                     var tempColor = Console.ForegroundColor;
                     
                     Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(e.StackTrace);
                     Console.WriteLine($"ERROR: Decompilation Failure -- {e.Message}, no file generated.");
                     Console.ForegroundColor = tempColor;
                 }

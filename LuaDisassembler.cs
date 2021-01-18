@@ -181,8 +181,8 @@ namespace luadec
                         instructions.Add(assn);
                         break;
                     case LuaOpCode.HKS_OPCODE_SELF:
-                        instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a + 1), Register((uint)b)));
-                        instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetRegister((uint)b), RKIRHKS(fun, c, szero))));
+                        instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a + 1), Register((uint)b)) { IsSelfAssignment = true });
+                        instructions.Add(new IR.Assignment(SymbolTable.GetRegister(a), new IR.IdentifierReference(SymbolTable.GetRegister((uint)b), RKIRHKS(fun, c, szero))){ IsSelfAssignment = true });
                         break;
                     case LuaOpCode.HKS_OPCODE_ADD:
                         assn = new IR.Assignment(SymbolTable.GetRegister(a), new IR.BinOp(Register((uint)b), RKIRHKS(fun, c, szero), IR.BinOp.OperationType.OpAdd));
@@ -391,7 +391,7 @@ namespace luadec
                         var funCall = new IR.FunctionCall(new IR.IdentifierReference(SymbolTable.GetRegister(a)), args);
                         funCall.IsIndeterminantArgumentCount = (b == 0);
                         funCall.BeginArg = a + 1;
-                        instructions.Add(new IR.Return(funCall));
+                        instructions.Add(new IR.Return(funCall) {IsTailReturn = true});
                         break;
                     case LuaOpCode.HKS_OPCODE_SETTABLE_S_BK:
                         instructions.Add(new IR.Assignment(new IR.IdentifierReference(SymbolTable.GetRegister(a), ToConstantIR(fun.Constants[(int) b])), RKIRHKS(fun, c, szero)));
@@ -589,6 +589,11 @@ namespace luadec
             }
             irfun.ApplyLabels();
 
+            if (irfun.DebugID == 32)
+            {
+                
+            }
+
             // Simple post-ir and idiom recognition analysis passes
             irfun.ResolveVarargListAssignment(SymbolTable);
             irfun.MergeMultiBoolAssignment();
@@ -612,6 +617,7 @@ namespace luadec
 
             // Data flow passes
             irfun.EliminateDeadAssignments(true);
+            irfun.PruneUnusedPhiFunctions();
             irfun.PerformExpressionPropogation();
             irfun.DetectListInitializers();
 

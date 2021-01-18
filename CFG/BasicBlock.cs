@@ -47,7 +47,7 @@ namespace luadec.CFG
         public bool IsLoopHead = false;
         public bool IsLoopLatch = false;
         public BasicBlock LoopFollow = null;
-        public BasicBlock LoopLatch = null;
+        public List<BasicBlock> LoopLatches = new List<BasicBlock>();
         public CFG.LoopType LoopType = LoopType.LoopNone;
         public BasicBlock Follow = null;
         public BasicBlock LoopBreakFollow = null;
@@ -277,9 +277,13 @@ namespace luadec.CFG
                         ret += ": endless";
                     }
                 }
-                if (LoopLatch != null)
+                if (LoopLatches.Count > 0)
                 {
-                    ret += $@" Latch: {LoopLatch}";
+                    ret += $@" Latch: ";
+                    foreach (var latch in LoopLatches)
+                    {
+                        ret += $@"{latch}, ";
+                    }
                 }
                 if (LoopFollow != null)
                 {
