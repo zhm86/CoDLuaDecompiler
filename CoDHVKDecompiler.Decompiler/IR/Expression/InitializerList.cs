@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using CoDHVKDecompiler.Decompiler.IR.Functions;
 using CoDHVKDecompiler.Decompiler.IR.Identifiers;
 
 namespace CoDHVKDecompiler.Decompiler.IR.Expression
@@ -80,19 +83,37 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression
 
         public override string ToString()
         {
-            string ret = "{";
+            StringBuilder str = new StringBuilder("{");
+
+            bool usePrettyPrint = Expressions.Count > 0;
+            if (usePrettyPrint)
+            {
+                str.Append("\n");
+                Function.IndentLevel++;
+            }
 
             // Pattern match special lua this call
             for (int i = 0; i < Expressions.Count; i++)
             {
-                ret += Expressions[i].ToString();
+                for (int j = 0; j < Function.IndentLevel; j++)
+                    str.Append("\t");
+                
+                str.Append(Expressions[i]);
                 if (i != Expressions.Count - 1)
-                {
-                    ret += ", ";
-                }
+                    str.Append(",");
+                str.Append("\n");
             }
-            ret += "}";
-            return ret;
+
+            if (usePrettyPrint)
+            {
+                Function.IndentLevel--;
+                for (int j = 0; j < Function.IndentLevel; j++)
+                    str.Append("\t");
+            }
+            
+            str.Append("}");
+                
+            return str.ToString();
         }
     }
 }
