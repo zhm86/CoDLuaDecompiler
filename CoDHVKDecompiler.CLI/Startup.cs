@@ -40,6 +40,7 @@ namespace CoDHVKDecompiler.CLI
             container.Resolve<Program>().Main(args);
             await updateTask;
 
+            Console.WriteLine("Press enter to exit");
             Console.ReadLine();
         }
     }
