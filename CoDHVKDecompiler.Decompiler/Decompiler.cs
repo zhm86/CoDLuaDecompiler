@@ -28,7 +28,7 @@ namespace CoDHVKDecompiler.Decompiler
 
         public void DecompileFunction(Function function, ILuaFunction luaFunction)
         {
-            if (function.Id == 874)
+            if (function.Id == 3)
             {
                 
             }

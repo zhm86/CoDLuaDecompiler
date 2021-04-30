@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CoDHVKDecompiler.Decompiler.CFG;
@@ -5,6 +6,7 @@ using CoDHVKDecompiler.Decompiler.IR.Expression;
 using CoDHVKDecompiler.Decompiler.IR.Functions;
 using CoDHVKDecompiler.Decompiler.IR.Identifiers;
 using CoDHVKDecompiler.Decompiler.IR.Instruction;
+using ValueType = CoDHVKDecompiler.Decompiler.IR.Identifiers.ValueType;
 
 namespace CoDHVKDecompiler.Decompiler.Analyzers
 {
@@ -61,7 +63,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                     var defines = b.Instructions[i].GetDefines(true);
 
                     // If this is a multiassignment then these variables are almost certainly locals
-                    if (defines.Count > 1 && !(b.Instructions[i] is Assignment {Right: Constant {Type: ValueType.Nil}}))
+                    if (defines.Count > 1 && !(b.Instructions[i] is Assignment {Right: Constant c} && (c.Type == ValueType.Nil || c.Type == ValueType.Boolean)))
                     {
                         foreach (var def in defines)
                         {
@@ -217,6 +219,64 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                                         i--;
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+                
+                // Propagate list initializers
+                // local fx_localy = {}
+                // local x1 = {...}
+                // local x2 = {...}
+                // fx_localy[1] = x1
+                // fx_localy[2] = x2
+                //  to
+                // local fx_localy = {
+                //   {...},
+                //   {...}
+                // }
+                foreach (var b in f.Blocks)
+                {
+                    for (int i = 2; i < b.Instructions.Count; i++)
+                    {
+                        var instr = b.Instructions[i];
+                        // Find the first assignment
+                        if (instr is Assignment a && a.Left.Count == 1 && a.Left[0].TableIndices.Count == 1 && 
+                            a.Right is IdentifierReference ir && !ir.HasIndex && a.Left[0].Identifier.DefiningInstruction is Assignment a2 && a2.Right is InitializerList  il && il.Expressions.Count == 0 &&
+                            a.Left[0].TableIndices[0] is Constant c && c.Type == ValueType.Number && Math.Abs(c.Number - 1) < 0.001)
+                        {
+                            // Check how many there are
+                            int tableLength = 1;
+                            int tIndex = i + 1;
+                            while (b.Instructions[tIndex] is Assignment tA && tA.Left.Count == 1 && tA.Left[0].TableIndices.Count == 1 &&
+                                   tA.Right is IdentifierReference tIr && !tIr.HasIndex && tA.Left[0].Identifier == a.Left[0].Identifier &&
+                                   tA.Left[0].TableIndices[0] is Constant c2 && c2.Type == ValueType.Number && Math.Abs(c2.Number - (tableLength + 1)) < 0.001
+                                   )
+                            {
+                                tableLength++;
+                                tIndex++;
+                            }
+
+                            bool valid = true;
+                            for (int j = 0; j < tableLength; j++)
+                            {
+                                if (!(b.Instructions[i + j] is Assignment a3 && a3.Right is IdentifierReference ir2 &&
+                                      b.Instructions[i - tableLength + j] is Assignment a4 && a4.Left.Count == 1 &&
+                                      ir2.Identifier == a4.Left[0].Identifier))
+                                {
+                                    valid = false;
+                                }
+                            }
+
+                            if (valid)
+                            {
+                                for (int j = 0; j < tableLength; j++)
+                                {
+                                    ((Assignment) b.Instructions[i + j]).Right =
+                                        ((Assignment) b.Instructions[i - tableLength + j]).Right;
+                                }
+                                b.Instructions.RemoveRange(i -  tableLength, tableLength);
+                                changed = true;
                             }
                         }
                     }

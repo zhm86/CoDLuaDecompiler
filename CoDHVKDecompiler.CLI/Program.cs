@@ -32,6 +32,8 @@ namespace CoDHVKDecompiler.CLI
 
                 // save output
                 File.WriteAllText(outFileName, output);
+                
+                Console.WriteLine($"Decompiled file: {filePath}");
             }
             catch (Exception e)
             {

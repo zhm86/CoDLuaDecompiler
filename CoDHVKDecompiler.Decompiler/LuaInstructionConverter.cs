@@ -105,7 +105,7 @@ namespace CoDHVKDecompiler.Decompiler
                         break;
                     case LuaOpCode.HKS_OPCODE_SETUPVAL:
                     case LuaOpCode.HKS_OPCODE_SETUPVAL_R1:
-                        up = _symbolTable.GetUpValue((uint) i.B);
+                        up = _symbolTable.GetUpValue(i.B);
                         if (luaFunction.Upvalues.Any() && !up.UpValueResolved)
                         {
                             up.Name = luaFunction.Upvalues[(int) i.B].Name;
@@ -139,14 +139,12 @@ namespace CoDHVKDecompiler.Decompiler
                             ));
                         break;
                     case LuaOpCode.HKS_OPCODE_SELF:
-                        instrs.Add(new Assignment(
-                            _symbolTable.GetRegister(i.A + 1), 
-                            RegisterReference(i.B)
-                            ));
-                        instrs.Add(new Assignment(
-                            _symbolTable.GetRegister(i.A),
-                            new IdentifierReference(_symbolTable.GetRegister(i.B), GetConstantBitFix(luaFunction, i.C, i.ExtraCBit))
-                            ));
+                        var op = new Assignment(_symbolTable.GetRegister(i.A + 1), new IdentifierReference(_symbolTable.GetRegister(i.B)));
+                        op.IsSelfAssignment = true;
+                        instrs.Add(op);
+                        op = new Assignment(_symbolTable.GetRegister(i.A), new IdentifierReference(_symbolTable.GetRegister(i.B), GetConstantBitFix(luaFunction, i.C, i.ExtraCBit)));
+                        op.IsSelfAssignment = true;
+                        instrs.Add(op);
                         break;
                     case LuaOpCode.HKS_OPCODE_ADD:
                         instrs.Add(new Assignment(

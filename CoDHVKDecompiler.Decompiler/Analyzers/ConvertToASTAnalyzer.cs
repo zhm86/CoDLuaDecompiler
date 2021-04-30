@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using CoDHVKDecompiler.Decompiler.CFG;
 using CoDHVKDecompiler.Decompiler.IR.Expression;
 using CoDHVKDecompiler.Decompiler.IR.Expression.Operator;
 using CoDHVKDecompiler.Decompiler.IR.Functions;
@@ -15,12 +16,18 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
         public void Analyze(Function f)
         {
             // Traverse all the nodes in post-order and try to convert jumps to if statements
-            var usedFollows = new HashSet<CFG.BasicBlock>();
+            var usedFollows = new HashSet<BasicBlock>();
 
             // Heads of for statements
-            var forHeads = new HashSet<CFG.BasicBlock>();
+            var forHeads = new HashSet<BasicBlock>();
             
             var relocalize = new HashSet<Identifier>();
+            
+            // Order the blocks sequentially
+            for (int i = 0; i < f.Blocks.Count; i++)
+            {
+                f.Blocks[i].OrderNumber = i;
+            }
 
             // Step 1: build the AST for ifs/loops based on follow information
             foreach (var node in f.PostorderTraversal(true))
@@ -42,7 +49,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                 }
                 
                 // A for loop is a pretested loop where the follow does not match the head
-                if (node.LoopFollow != null && node.LoopFollow != node && node.Predecessors.Count() >= 2 && node.LoopType == CFG.LoopType.LoopPretested)
+                if (node.LoopFollow != null && node.LoopFollow != node && node.Predecessors.Count() >= 2 && node.LoopType == LoopType.LoopPretested)
                 {
                     var loopInitializer = node.Predecessors.First(x => !node.LoopLatches.Contains(x));
 
@@ -290,7 +297,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                 }
 
                 // repeat...until loop
-                if (node.LoopType == CFG.LoopType.LoopPostTested)
+                if (node.LoopType == LoopType.LoopPostTested)
                 {
                     var whiles = new While();
                     whiles.IsPostTested = true;
@@ -353,14 +360,12 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                 }
 
                 // Infinite while loop
-                if (node.LoopType == CFG.LoopType.LoopEndless)
+                if (node.LoopType == LoopType.LoopEndless)
                 {
-                    var whiles = new While();
+                    var whiles = new While {Condition = new Constant(true, -1), Body = node};
 
                     // Loop head has condition
-                    whiles.Condition = new Constant(true, -1);
 
-                    whiles.Body = node;
                     if (node.LoopFollow != null && !usedFollows.Contains(node.LoopFollow))
                     {
                         whiles.Follow = node.LoopFollow;
@@ -399,7 +404,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                     // Remove gotos in latch
                     foreach (var pred in node.Predecessors)
                     {
-                        if (pred.IsLoopLatch && pred.Instructions.Last() is Jump lj && !lj.Conditional)
+                        if (pred.IsLoopLatch && pred.Instructions.Last() is Jump {Conditional: false})
                         {
                             pred.Instructions.RemoveAt(pred.Instructions.Count - 1);
                         }
@@ -413,8 +418,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                 // Pattern match for an if statement
                 if (node.Follow != null && node.Instructions.Count > 0 && node.Instructions.Last() is Jump jmp)
                 {
-                    var ifStatement = new IfStatement();
-                    ifStatement.Condition = jmp.Condition;
+                    var ifStatement = new IfStatement {Condition = jmp.Condition};
                     // Check for empty if block
                     if (node.Successors[0] != node.Follow)
                     {
@@ -432,14 +436,18 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                             }
                             else if (ifStatement.TrueBody.IsLoopLatch || !ifStatement.TrueBody.Successors[0].IsLoopHead)
                             {
+                                if (!ifStatement.TrueBody.IsLoopLatch && lj.BlockDest == node.Follow && node.Successors[1] == node.Follow && ifStatement.TrueBody.OrderNumber + 1 == node.Follow.OrderNumber)
+                                {
+                                    // Generate an empty else statement if there's a jump to the follow, the follow is the next block sequentially, and it isn't fallthrough
+                                    ifStatement.FalseBody = new BasicBlock();
+                                }
                                 ifStatement.TrueBody.Instructions.Remove(lj);
                             }
                         }
                         //if (ifStatement.True.Instructions.Last() is Jump && ifStatement.True.IsContinueNode)
                         if (node.IsContinueNode)// && node.Successors[0].IsLoopHead)
                         {
-                            var bb = new CFG.BasicBlock();
-                            bb.Instructions = new List<IInstruction>() { new Continue() };
+                            var bb = new BasicBlock {Instructions = new List<IInstruction>() {new Continue()}};
                             ifStatement.TrueBody = bb;
                         }
                     }
@@ -447,7 +455,10 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                     {
                         ifStatement.FalseBody = node.Successors[1];
                         ifStatement.FalseBody.MarkCodegenerated(f.Id);
-                        if (ifStatement.FalseBody.Instructions.Any() && ifStatement.FalseBody.Instructions.Last() is Jump fj && !fj.Conditional)
+                        if (ifStatement.FalseBody.Instructions.Any() && ifStatement.FalseBody.Instructions.Last() is Jump
+                        {
+                            Conditional: false
+                        } fj)
                         {
                             if (ifStatement.FalseBody.IsBreakNode)
                             {
@@ -460,8 +471,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         }
                         if (node.IsContinueNode && node.Successors[1].IsLoopHead)
                         {
-                            var bb = new CFG.BasicBlock();
-                            bb.Instructions = new List<IInstruction>() { new Continue() };
+                            var bb = new BasicBlock {Instructions = new List<IInstruction>() {new Continue()}};
                             ifStatement.FalseBody = bb;
                         }
                     }
@@ -478,7 +488,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
             // Step 2: Remove Jmp instructions from follows if they exist
             foreach (var follow in usedFollows)
             {
-                if (follow.Instructions.Count() > 0 && follow.Instructions.Last() is Jump jmp)
+                if (follow.Instructions.Any() && follow.Instructions.Last() is Jump jmp)
                 {
                     follow.Instructions.Remove(jmp);
                 }

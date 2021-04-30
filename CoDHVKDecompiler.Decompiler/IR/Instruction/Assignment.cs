@@ -92,6 +92,10 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
                 if (id.HasIndex /*&& (!regOnly || id.Identifier.IdentifierType == IdentifierType.Register)*/)
                 {
                     uses.UnionWith(id.GetUses(regOnly));
+                    foreach (var idx in id.TableIndices)
+                    {
+                        uses.UnionWith(idx.GetUses(regOnly));
+                    }
                 }
             }
             uses.UnionWith(Right.GetUses(regOnly));

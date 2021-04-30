@@ -14,6 +14,11 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
         /// The original lua bytecode op within the function that generated this instruction
         /// </summary>
         public int OpLocation { get; set; }
+
+        /// <summary>
+        /// The instruction index in a basic block before propogation is done
+        /// </summary>
+        public int PrePropagationIndex { get; set; } = 0;
         /// <summary>
         /// Backpointer to the containing block. Used for some analysis
         /// </summary>

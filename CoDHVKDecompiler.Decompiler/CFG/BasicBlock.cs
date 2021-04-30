@@ -48,6 +48,7 @@ namespace CoDHVKDecompiler.Decompiler.CFG
         
         // Control flow analysis
         public int ReversePostorderNumber { get; set; } = 0;
+        public int OrderNumber { get; set; } = 0;
         public bool IsLoopLatch { get; set; } = false;
         public bool IsLoopHead { get; set; } = false;
         public LoopType LoopType { get; set; }

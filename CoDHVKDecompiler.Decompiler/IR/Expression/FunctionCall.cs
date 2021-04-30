@@ -15,6 +15,10 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression
         public bool IsIndeterminateReturnCount { get; set; } = false;
         public bool IsIndeterminateArgumentCount { get; set; } = false;
         public bool IsFunctionCalledOnSelf { get; set; } = false;
+        /// <summary>
+        /// Index of where the function def register was originally defined. Used to help decide what expressions to inline
+        /// </summary>
+        public int FunctionDefIndex { get; set; } = 0;
         
         public FunctionCall(IExpression fun, List<IExpression> args)
         {

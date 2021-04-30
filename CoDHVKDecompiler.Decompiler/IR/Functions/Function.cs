@@ -204,7 +204,11 @@ namespace CoDHVKDecompiler.Decompiler.IR.Functions
             // Only add the function header if it isn't the lua file's main function
             if (Parent != null)
             {
-                str.Append($"function {funcName}(");
+                str.Append($"function");
+#if DEBUG
+                str.Append($" --[[{Id}]]");
+#endif
+                str.Append($" {funcName}(");
                 // Add all the parameters
                 for (int i = 0; i < Parameters.Count; i++)
                 {
