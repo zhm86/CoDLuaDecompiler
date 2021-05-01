@@ -248,7 +248,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                             // Check how many there are
                             int tableLength = 0;
                             int tIndex = i;
-                            while (b.Instructions[tIndex] is Assignment tA && tA.Left.Count == 1 && tA.Left[0].TableIndices.Count == 1 &&
+                            while (tIndex < b.Instructions.Count && b.Instructions[tIndex] is Assignment tA && tA.Left.Count == 1 && tA.Left[0].TableIndices.Count == 1 &&
                                    tA.Right is IdentifierReference tIr && !tIr.HasIndex && tA.Left[0].Identifier == a.Left[0].Identifier &&
                                    tA.Left[0].TableIndices[0] is Constant c2 && c2.Type == ValueType.Number && Math.Abs(c2.Number - (tableLength + 1)) < 0.001
                                    )
@@ -258,7 +258,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                             }
 
                             // Make sure the defining instruction is in the right spot
-                            if (!(b.Instructions[i - tableLength - 1] is Assignment a5 && a5.Left.Count == 1 && a2 == a5))
+                            if (!(i - tableLength - 1 >= 0 && b.Instructions[i - tableLength - 1] is Assignment a5 && a5.Left.Count == 1 && a2 == a5))
                             {
                                 continue;
                             }
