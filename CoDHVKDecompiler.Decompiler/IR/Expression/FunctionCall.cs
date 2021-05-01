@@ -117,7 +117,11 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression
             if (Function is IdentifierReference ir && ir.TableIndices.Count >= 1 &&
                 ir.TableIndices[^1] is Constant c && c.Type == ValueType.String)
             {
-                if (Arguments.Any() && Arguments[0] is IdentifierReference thisIr && thisIr.TableIndices.Count == 0 && thisIr.Identifier == ir.Identifier)
+                if (IsFunctionCalledOnSelf)
+                {
+                    ret += $@"{ir.ToString().Substring(0, ir.ToString().Length - c.String.Length - 1)}:{c.String}(";
+                }
+                else if (Arguments.Any() && Arguments[0] is IdentifierReference thisIr && thisIr.TableIndices.Count == 0 && thisIr.Identifier == ir.Identifier)
                 {
                     ret += $@"{ir.Identifier}:{c.String}(";
                     beginarg = 1;
@@ -138,24 +142,28 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression
                         }
                     }
 
-                    if (str == ir2.ToString())
+                    if (str == ir2.ToString() || IsFunctionCalledOnSelf)
                     {
                         ret += $@"{ir2}:{c.String}(";
                         beginarg = 1;
                     }
                     else
                     {
-                        ret += $@"{Function.ToString()}(";
+                        ret += $@"{Function}(";
                     }
                 }
                 else
                 {
-                    ret += $@"{Function.ToString()}(";
+                    ret += $@"{Function}(";
                 }
             }
             else
             {
-                ret += Function.ToString() + "(";
+                if (IsFunctionCalledOnSelf)
+                {
+                    
+                }
+                ret += Function + "(";
             }
             for (int i = beginarg; i < Arguments.Count(); i++)
             {

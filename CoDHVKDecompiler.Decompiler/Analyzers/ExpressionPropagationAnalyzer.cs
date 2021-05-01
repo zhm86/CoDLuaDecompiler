@@ -246,8 +246,8 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                             a.Left[0].TableIndices[0] is Constant c && c.Type == ValueType.Number && Math.Abs(c.Number - 1) < 0.001)
                         {
                             // Check how many there are
-                            int tableLength = 1;
-                            int tIndex = i + 1;
+                            int tableLength = 0;
+                            int tIndex = i;
                             while (b.Instructions[tIndex] is Assignment tA && tA.Left.Count == 1 && tA.Left[0].TableIndices.Count == 1 &&
                                    tA.Right is IdentifierReference tIr && !tIr.HasIndex && tA.Left[0].Identifier == a.Left[0].Identifier &&
                                    tA.Left[0].TableIndices[0] is Constant c2 && c2.Type == ValueType.Number && Math.Abs(c2.Number - (tableLength + 1)) < 0.001
@@ -255,6 +255,12 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                             {
                                 tableLength++;
                                 tIndex++;
+                            }
+
+                            // Make sure the defining instruction is in the right spot
+                            if (!(b.Instructions[i - tableLength - 1] is Assignment a5 && a5.Left.Count == 1 && a2 == a5))
+                            {
+                                continue;
                             }
 
                             bool valid = true;
@@ -281,24 +287,8 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         }
                     }
                 }
-                
-                // Changing the functioncall on self
-                //  REG0.someFunction(REG0, ...)
-                //    to
-                //  REG0:someFunction(...)
-                foreach (var b in f.Blocks)
-                {
-                    for (int i = 0; i < b.Instructions.Count(); i++)
-                    {
-                        var inst = b.Instructions[i];
-                        if (inst is Assignment {Right: FunctionCall {Function: IdentifierReference ir} fc} && ir.TableIndices.Count >= 1 && ir.TableIndices[^1] is Constant {Type: ValueType.String} && fc.Arguments.Any() && fc.Arguments[0] is IdentifierReference {HasIndex: false} argIr && ir == argIr)
-                        {
-                            fc.Arguments.RemoveAt(0);
-                            fc.IsFunctionCalledOnSelf = true;
-                            changed = true;
-                        }
-                    }
-                }
+
+                changed = changed || PropagateFunctionCallOnSelf(f);
 
                 // Lua might generate the following (decompiled) code when doing a this call on a global variable:
                 //     REG0 = someGlobal
@@ -323,6 +313,42 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                     }
                 }
             } while (changed);
+        }
+
+        /// <summary>
+        /// Changing the functioncall on self
+        /// REG0.someFunction(REG0, ...)
+        ///     to
+        /// REG0:someFunction(...)
+        /// </summary>
+        /// <param name="f">Function to do the analysis on</param>
+        /// <returns>Whether or not something has changed</returns>
+        private bool PropagateFunctionCallOnSelf(Function f)
+        {
+            bool changed = false;
+            foreach (var b in f.Blocks)
+            {
+                for (int i = 0; i < b.Instructions.Count(); i++)
+                {
+                    var expressions = b.Instructions[i].GetExpressions().Where(e => e is FunctionCall).ToList();
+                    foreach (var expression in expressions)
+                    {
+                        if (expression is FunctionCall {Function: IdentifierReference ir} fc && ir.TableIndices.Count >= 1 && 
+                            ir.TableIndices[^1] is Constant {Type: ValueType.String} && fc.Arguments.Any() && 
+                            fc.Arguments[0] is IdentifierReference {HasIndex: false} argIr && 
+                            (ir == argIr || ir.HasIndex && ir.Identifier == argIr.Identifier))
+                        {
+                            fc.Arguments.RemoveAt(0);
+                            fc.IsFunctionCalledOnSelf = true;
+                            if (ir.Identifier.UseCount > 1)
+                                ir.Identifier.UseCount--;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+
+            return changed;
         }
     }
 }

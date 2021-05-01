@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 using CoDHVKDecompiler.Decompiler.IR.Expression;
@@ -154,7 +155,9 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
             {
                 ret.AddRange(left.GetExpressions());
             }
-            ret.Add(Right);
+
+            if (Right != null)
+                ret.AddRange(Right.GetExpressions());
             return ret;
         }
 

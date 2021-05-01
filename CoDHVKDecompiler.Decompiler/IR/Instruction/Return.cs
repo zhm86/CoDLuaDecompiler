@@ -66,7 +66,12 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
 
         public override List<IExpression> GetExpressions()
         {
-            return Expressions.Select(e => e).ToList();
+            var ret = new List<IExpression>();
+            foreach (var r in Expressions)
+            {
+                ret.AddRange(r.GetExpressions());
+            }
+            return ret;
         }
         
         public override string ToString()

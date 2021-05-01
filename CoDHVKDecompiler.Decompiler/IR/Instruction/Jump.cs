@@ -76,7 +76,9 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
         
         public override List<IExpression> GetExpressions()
         {
-            return new List<IExpression>() { Condition };
+            if (Conditional)
+                return Condition.GetExpressions();
+            return new List<IExpression>();
         }
         
         public override string ToString()
