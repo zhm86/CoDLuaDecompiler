@@ -23,7 +23,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         } c &&
                         a22.Right is IdentifierReference ir2 && fc.Arguments[0] is IdentifierReference ir1 && ir2.Identifier == ir1.Identifier)
                     {
-                        if (!(b.Instructions[b.Instructions.IndexOf(ir2.Identifier.DefiningInstruction) - 1] is NewLine))
+                        if (b.Instructions.IndexOf(ir2.Identifier.DefiningInstruction) > 0 && !(b.Instructions[b.Instructions.IndexOf(ir2.Identifier.DefiningInstruction) - 1] is NewLine))
                         {
                             b.Instructions.Insert(b.Instructions.IndexOf(ir2.Identifier.DefiningInstruction), new NewLine());
                             i++;

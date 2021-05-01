@@ -451,7 +451,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                             ifStatement.TrueBody = bb;
                         }
                     }
-                    if (node.Successors[1] != node.Follow)
+                    if (node.Successors[1] != node.Follow && node.Successors[1].Instructions.Any())
                     {
                         ifStatement.FalseBody = node.Successors[1];
                         ifStatement.FalseBody.MarkCodegenerated(f.Id);

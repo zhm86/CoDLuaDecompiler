@@ -13,6 +13,7 @@ namespace CoDHVKDecompiler.Decompiler
         public Function GetDecompiledFile(ILuaFile luaFile)
         {
             Function.IdCounter = 0;
+            Function.IndentLevel = 0;
             var function = new Function(SymbolTable);
             
             DecompileFunction(function, luaFile.MainFunction);
