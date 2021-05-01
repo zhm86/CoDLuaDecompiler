@@ -46,7 +46,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
             
             new RenameVariablesAnalyzer(),
             new ParenthesizeAnalyzer(),
-            new EmptyLinesAnalyzer(),
+            new WidgetEmptyLinesAnalyzer(),
             new InlineClosuresAnalyzer(),
             new MultipleNotsAnalyzer(),
             

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CoDHVKDecompiler.Common.LuaFunction.Structures;
 using CoDHVKDecompiler.Decompiler.IR.Expression;
 using CoDHVKDecompiler.Decompiler.IR.Functions;
@@ -142,14 +143,16 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                 for (int i = 0; i < b.Instructions.Count - 2; i++)
                 {
                     var inst = b.Instructions[i];
-                    if (inst is Assignment {Right: FunctionCall fc} && fc.Function.ToString().Contains("addElement") && fc.Arguments.Count == 2 && 
-                        fc.Arguments[1] is IdentifierReference ir && b.Instructions[i + 1] is Assignment a22 && a22.Left.Count == 1 && 
+                    if (inst is Assignment {Right: FunctionCall fc} a && fc.Function is IdentifierReference ir && ir.TableIndices.Count == 1 && ir.TableIndices[0] is Constant c1 && 
+                        c1.Type == ValueType.String && c1.String == "addElement" &&
+                        b.Instructions[i + 1] is Assignment a22 && a22.Left.Count == 1 && 
                         a22.Left[0].TableIndices.Count == 1 && a22.Left[0].TableIndices[0] is Constant
+                        {
+                            Type: ValueType.String
+                        } c &&
+                        a22.Right is IdentifierReference ir2 && fc.Arguments[0] is IdentifierReference ir1 && ir2.Identifier == ir1.Identifier)
                     {
-                        Type: ValueType.String
-                    } c)
-                    {
-                        ir.Identifier.Name = c.String;
+                        ir2.Identifier.Name = c.String;
                     }
                 }
             }
@@ -158,11 +161,19 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
             {
                 foreach (var i in b.Instructions)
                 {
-                    if (i is Assignment a3 && a3.Right is FunctionCall c3 && c3.Function.ToString().Contains("mergeStateConditions") && c3.Arguments.Count == 2 && c3.Arguments[1] is InitializerList il)
+                    if (i is Assignment {Right: FunctionCall {Function: IdentifierReference ir} fc} && ir.TableIndices.Count == 1 && ir.TableIndices[0] is Constant
                     {
-                        foreach (var expression in il.Expressions)
+                        Type: ValueType.String, String: "mergeStateConditions"
+                    } && fc.Arguments.Count == 1 && fc.Arguments[0] is InitializerList il)
+                    {
+                        foreach (var e in il.Expressions)
                         {
-                            if (expression is InitializerList il2 && il2.Expressions.Count == 2 && il2.Expressions[1] is ListAssignment la && la.Left is Constant c && c.String == "condition" && la.Right is Closure cl)
+                            if (e is InitializerList il2 && il2.Expressions.Count == 2 && il2.Expressions.All(ex => ex is ListAssignment) &&
+                                il2.Expressions[0] is ListAssignment {Left: Constant {Type: ValueType.String, String: "stateName"}, Right: Constant
+                                    {
+                                        Type: ValueType.String
+                                    }
+                                } && il2.Expressions[1] is ListAssignment {Left: Constant {Type: ValueType.String, String: "condition"}, Right: Closure cl})
                             {
                                 cl.Function.ArgumentNames = new List<Local>() {new Local(){Name = "HudRef"}, new Local(){Name = "ItemRef"}, new Local(){Name = "UpdateTable"}};
                             }
