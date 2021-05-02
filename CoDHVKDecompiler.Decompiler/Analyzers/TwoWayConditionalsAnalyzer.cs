@@ -28,7 +28,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                 }
 
                 // if ((nodeType(m) == 2-way) ^ (inHeadLatch(m) == false)
-                if (b.Successors.Count() == 2 && b.Instructions.Last() is Jump jmp && (!b.IsLoopHead || b.LoopType != CFG.LoopType.LoopPretested))
+                if (b.Successors.Count() == 2 && b.Instructions.Last() is Jump jmp && (!b.IsLoopHead || b.LoopType != LoopType.LoopPretested))
                 {
                     int maxEdges = 0;
                     BasicBlock maxNode = null;
@@ -86,6 +86,14 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         maxNode = b.Successors[1];
                     }
 
+                    if (maxNode == null && b.Successors[0].Successors.Count == 1 && b.Successors[1].Successors.Count == 1 &&
+                        b.Successors[0].Successors[0] == b.Successors[1].Successors[0] &&
+                        b.Instructions.Any() && b.Instructions.Last() is Jump j && j.BlockDest == b.Successors[1] &&
+                        b.Successors[0].Instructions.Any() && b.Successors[0].Instructions.Last() is Jump j2 && j2.BlockDest == b.Successors[0].Successors[0] &&
+                        b.Successors[0].Successors[0].IsLoopHead)
+                    {
+                        maxNode = b.Successors[1].Successors[0];
+                    }
                     
                     if (maxNode != null)
                     {

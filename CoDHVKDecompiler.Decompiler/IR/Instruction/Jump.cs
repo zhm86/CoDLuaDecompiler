@@ -87,9 +87,6 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
             if (Conditional)
             {
                 ret += $@"if {Condition} else ";
-#if DEBUG
-                ret += "-- to: " + Dest;
-#endif
             }
             if (BlockDest != null)
             {

@@ -33,6 +33,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                     jmp.Block = currentBlock;
                     currentBlock = new BasicBlock();
                     f.Blocks.Add(currentBlock);
+                    // Look if there's a label, this will be the start of the new block
                     if (i + 1 < f.Instructions.Count && f.Instructions[i + 1] is Label l)
                     {
                         labelBasicBlockMap.Add(l, currentBlock);

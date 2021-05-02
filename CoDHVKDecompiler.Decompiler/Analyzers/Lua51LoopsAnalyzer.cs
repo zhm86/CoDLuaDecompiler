@@ -14,7 +14,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
         {
             foreach (var b in f.Blocks)
             {
-                if (b.Instructions.Count > 0 && b.Instructions.Last() is Jump {PostTakenAssignment: { }} jmp)
+                if (b.Instructions.Any() && b.Instructions.Last() is Jump {PostTakenAssignment: { }} jmp)
                 {
                     b.Successors[1].Instructions.Insert(0, jmp.PostTakenAssignment);
                     jmp.PostTakenAssignment.PropagateAlways = true;
