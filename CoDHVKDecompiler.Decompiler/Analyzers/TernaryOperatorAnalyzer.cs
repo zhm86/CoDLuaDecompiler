@@ -77,7 +77,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         a.Left[0] = new IdentifierReference(newCond);
                     }
 
-                    if (f.Instructions[f.Instructions.IndexOf(j.Dest) - 2] is Assignment a2 && a2.Left.Count == 1 && a2.Left[0].Identifier == ir.Identifier)
+                    if (f.Instructions[f.Instructions.IndexOf(j.Dest) - 2] is Assignment a2 && a2.Left.Count == 1 && !a2.Left[0].HasIndex && a2.Left[0].Identifier == ir.Identifier)
                     {
                         a2.Left[0] = new IdentifierReference(newLeftIr);
                     }
@@ -91,7 +91,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         }
                     }
 
-                    if (f.Instructions[f.Instructions.IndexOf(j2.Dest) - 1] is Assignment a3 && a3.Left.Count == 1 && a3.Left[0].Identifier == ir.Identifier)
+                    if (f.Instructions[f.Instructions.IndexOf(j2.Dest) - 1] is Assignment a3 && a3.Left.Count == 1 && !a3.Left[0].HasIndex && a3.Left[0].Identifier == ir.Identifier)
                     {
                         a3.Left[0] = new IdentifierReference(newRightIr);
                     }
