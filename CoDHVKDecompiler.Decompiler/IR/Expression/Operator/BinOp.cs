@@ -9,6 +9,7 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression.Operator
         public IExpression Left { get; set; }
         public IExpression Right { get; set; }
         public BinOperationType OperationType { get; set; }
+        public bool IgnoreParentheses { get; set; } = false;
         public bool HasParentheses { get; set; } = false;
         
         public BinOp(IExpression left, IExpression right, BinOperationType op)
@@ -275,12 +276,12 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression.Operator
                     break;
             }
             string ret = "";
-            if (HasParentheses)
+            if (HasParentheses && !IgnoreParentheses)
             {
                 ret += "(";
             }
             ret += $@"{Left} {op} {Right}";
-            if (HasParentheses)
+            if (HasParentheses && !IgnoreParentheses)
             {
                 ret += ")";
             }

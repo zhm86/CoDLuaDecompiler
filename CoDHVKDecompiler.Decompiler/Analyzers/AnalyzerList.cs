@@ -18,6 +18,7 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
             new UnusedLabelsAnalyzer(),
             new RemovingDataAnalyzer(),
             
+            new TernaryOperatorAnalyzer(),
             new ConstructCfgAnalyzer(),
             new IndeterminateArgumentsAnalyzer(),
             new Lua51LoopsAnalyzer(),

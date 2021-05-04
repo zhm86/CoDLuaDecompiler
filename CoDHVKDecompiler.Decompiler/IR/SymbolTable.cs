@@ -8,31 +8,31 @@ namespace CoDHVKDecompiler.Decompiler.IR
 {
     public class SymbolTable
     {
-        private readonly Stack<Dictionary<String, Identifier>> _scopeStack;
+        public readonly Stack<Dictionary<String, Identifier>> ScopeStack;
         // Use this stack for debugging
         private readonly List<Dictionary<String, Identifier>> _finalizedScopes;
 
         public SymbolTable()
         {
-            _scopeStack = new Stack<Dictionary<string, Identifier>>();
+            ScopeStack = new Stack<Dictionary<string, Identifier>>();
             _finalizedScopes = new List<Dictionary<string, Identifier>>();
             // Add a stack for the globals
-            _scopeStack.Push(new Dictionary<string, Identifier>());
+            ScopeStack.Push(new Dictionary<string, Identifier>());
         }
         
         public void BeginScope()
         {
-            _scopeStack.Push(new Dictionary<string, Identifier>());
+            ScopeStack.Push(new Dictionary<string, Identifier>());
         }
         
         public void EndScope()
         {
-            _finalizedScopes.Add(_scopeStack.Pop());
+            _finalizedScopes.Add(ScopeStack.Pop());
         }
         
         public Identifier GetRegister(uint reg)
         {
-            if (!_scopeStack.Peek().ContainsKey($@"REG{reg}"))
+            if (!ScopeStack.Peek().ContainsKey($@"REG{reg}"))
             {
                 Identifier id = new Identifier
                 {
@@ -41,14 +41,14 @@ namespace CoDHVKDecompiler.Decompiler.IR
                     Name = $@"REG{reg}",
                     RegNum = reg
                 };
-                _scopeStack.Peek().Add(id.Name, id);
+                ScopeStack.Peek().Add(id.Name, id);
             }
-            return _scopeStack.Peek()[$@"REG{reg}"];
+            return ScopeStack.Peek()[$@"REG{reg}"];
         }
         
         public Identifier GetUpValue(uint upValue)
         {
-            if (!_scopeStack.Peek().ContainsKey($@"UPVAL{upValue}"))
+            if (!ScopeStack.Peek().ContainsKey($@"UPVAL{upValue}"))
             {
                 Identifier id = new Identifier
                 {
@@ -56,14 +56,14 @@ namespace CoDHVKDecompiler.Decompiler.IR
                     ValueType = ValueType.Unknown,
                     Name = $@"UPVAL{upValue}"
                 };
-                _scopeStack.Peek().Add(id.Name, id);
+                ScopeStack.Peek().Add(id.Name, id);
             }
-            return _scopeStack.Peek()[$@"UPVAL{upValue}"];
+            return ScopeStack.Peek()[$@"UPVAL{upValue}"];
         }
 
         public Identifier GetGlobal(string global, int constantId)
         {
-            if (!_scopeStack.First().ContainsKey(global))
+            if (!ScopeStack.First().ContainsKey(global))
             {
                 Identifier id = new Identifier
                 {
@@ -72,28 +72,28 @@ namespace CoDHVKDecompiler.Decompiler.IR
                     Name = global,
                     ConstantId = constantId
                 };
-                _scopeStack.First().Add(id.Name, id);
+                ScopeStack.First().Add(id.Name, id);
             }
-            return _scopeStack.First()[global];
+            return ScopeStack.First()[global];
         }
 
         public Identifier GetVarargs()
         {
-            if (!_scopeStack.First().ContainsKey("$VARARGS"))
+            if (!ScopeStack.First().ContainsKey("$VARARGS"))
             {
                 Identifier id = new Identifier
                 {
                     IdentifierType = IdentifierType.Varargs, ValueType = ValueType.Unknown, Name = "$VARARGS"
                 };
-                _scopeStack.First().Add(id.Name, id);
+                ScopeStack.First().Add(id.Name, id);
             }
-            return _scopeStack.First()["$VARARGS"];
+            return ScopeStack.First()["$VARARGS"];
         }
         
         public HashSet<Identifier> GetAllRegistersInScope()
         {
             var ret = new HashSet<Identifier>();
-            foreach (var reg in _scopeStack.Peek())
+            foreach (var reg in ScopeStack.Peek())
             {
                 if (reg.Value.IdentifierType == IdentifierType.Register)
                 {
