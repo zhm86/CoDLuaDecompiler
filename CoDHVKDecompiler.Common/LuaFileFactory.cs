@@ -10,10 +10,23 @@ namespace CoDHVKDecompiler.Common
             var bytes = reader.ReadBytes(13);
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
 
+            // Check the .LJ magic in IW8 amd T9 lua
+            if(bytes[0] == 0x1B && bytes[1] == 0x4C && bytes[2] == 0x4A)
+                throw new NotImplementedException("Modern Warfare/Black Ops Cold War lua isn't implemented");
+            
             if (bytes[0] != 0x1B || bytes[1] != 0x4C || bytes[2] != 0x75 || bytes[3] != 0x61)
-            {
                 throw new Exception("Invalid file magic");
-            }
+            
+            // Check if lua version is 5.0
+            if(bytes[4] == 0x50)
+                throw new NotImplementedException("5.0 lua isn't implemented");
+            
+            // Check compiler version
+            if(bytes[5] == 0x0D)
+                return new LuaFileT6(reader);
+
+            if (bytes[12] == 0x03)
+                return new LuaFileIW(reader);
 
             return new LuaFileT7(reader);
         }
