@@ -516,7 +516,7 @@ namespace CoDHVKDecompiler.Decompiler
                         }
                         else
                         {
-                            instrs.Add(new Data());
+                            instrs.Add(new Data(i));
                         }
                         break;
                     case LuaOpCode.HKS_OPCODE_SETFIELD:

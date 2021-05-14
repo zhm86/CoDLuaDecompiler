@@ -45,6 +45,25 @@ namespace CoDHVKDecompiler.Decompiler.IR
             }
             return ScopeStack.Peek()[$@"REG{reg}"];
         }
+
+        public Identifier GetNewRegister()
+        {
+            // Get the highest regs
+            var newRegNum = ScopeStack.Peek()
+                .Select(st => st.Key.StartsWith("REG") ? int.Parse(st.Key.Substring(3)) : -1)
+                .Where(reg => reg != -1)
+                .Max() + 1;
+            Identifier id = new Identifier
+            {
+                IdentifierType = IdentifierType.Register,
+                ValueType = ValueType.Unknown,
+                Name = $@"REG{newRegNum}",
+                RegNum = (uint) newRegNum
+            };
+            ScopeStack.Peek().Add(id.Name, id);
+
+            return id;
+        }
         
         public Identifier GetUpValue(uint upValue)
         {

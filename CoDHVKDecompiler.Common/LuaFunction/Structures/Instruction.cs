@@ -9,5 +9,10 @@ namespace CoDHVKDecompiler.Common.LuaFunction.Structures
         public bool ExtraCBit { get; set; } = false;
         public uint Bx { get; set; }
         public int SBx { get; set; }
+
+        public override string ToString()
+        {
+            return $"OpCode: {OpCode}, A: {A}, B: {B}, C: {C}, ExtraCBit: {ExtraCBit}, Bx: {Bx}: SBx: {SBx}";
+        }
     }
 }
