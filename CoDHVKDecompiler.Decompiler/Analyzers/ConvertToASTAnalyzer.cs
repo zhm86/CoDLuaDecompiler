@@ -287,6 +287,56 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         // The head might be the follow of an if statement, so do this to not codegen it
                         usedFollows.Add(node);
                     }
+                    // Match a while with iterator
+                    else if (node.Instructions.Count == 2 && node.Instructions[0] is Assignment a5 && a5.Right is FunctionCall fc5 && node.Instructions[1] is Jump j5 && j5.Conditional)
+                    {
+                        var whileBlock = new While() {Condition = j5.Condition};
+                        loopInitializer.Instructions.Add(a5);
+                        
+                        whileBlock.Body = node.Successors[0];
+                        whileBlock.Body.MarkCodegenerated(f.Id);
+                        if (!usedFollows.Contains(node.LoopFollow))
+                        {
+                            whileBlock.Follow = node.LoopFollow;
+                            usedFollows.Add(node.LoopFollow);
+                            node.LoopFollow.MarkCodegenerated(f.Id);
+                        }
+                        // If there's a goto to this loop head, replace it with the while. Otherwise replace the last instruction of this node
+                        if (loopInitializer.Successors.Count == 1)
+                        {
+                            if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                            {
+                                loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = whileBlock;
+                            }
+                            else
+                            {
+                                loopInitializer.Instructions.Add(whileBlock);
+                            }
+                        }
+                        else
+                        {
+                            node.Instructions.Add(whileBlock);
+                        }
+
+                        // Remove gotos in latch
+                        foreach (var pred in node.Predecessors)
+                        {
+                            if (pred.IsLoopLatch && pred.Instructions.Last() is Jump lj && !lj.Conditional)
+                            {
+                                pred.Instructions.RemoveAt(pred.Instructions.Count - 1);
+                            }
+                        }
+                        
+                        // Add the iterator instruction at the end
+                        if (node.LoopLatches.Count == 1)
+                        {
+                            node.LoopLatches[0].Instructions.Add(new Assignment(new IdentifierReference(a5.Left[0].Identifier), a5.Right));
+                        }
+
+                        node.MarkCodegenerated(f.Id);
+                        // The head might be the follow of an if statement, so do this to not codegen it
+                        usedFollows.Add(node);
+                    }
 
                     // Match a repeat while (single block)
                     else if (node.Instructions.Last() is Jump loopJump5 && loopJump5.Condition is IExpression loopCondition5 && node.LoopLatches.Count == 1 && node.LoopLatches[0] == node)
