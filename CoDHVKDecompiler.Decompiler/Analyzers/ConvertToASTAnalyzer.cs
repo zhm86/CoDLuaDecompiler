@@ -195,6 +195,49 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         // The head might be the follow of an if statement, so do this to not codegen it
                         usedFollows.Add(node);
                     }
+                    // Generic for but without the func call
+                    else if (node.Instructions.Count == 2 && node.Instructions.Last() is Jump loopJump3 && loopJump3.Condition is BinOp loopCondition3 &&
+                             node.Instructions[0] is Assignment a3 && a3.Left.Count > 0 && a3.Right is FunctionCall fc3 && fc3.Function is IdentifierReference fc3ir &&
+                             loopInitializer.Instructions.Count >= 2 && loopInitializer.Instructions.First() is Assignment a4 && a4.Right is IdentifierReference ir2 &&
+                             a4.Left.Count == 1 && a4.Left[0].Identifier == fc3ir.Identifier
+                    )
+                    {
+                        var gFor = new GenericFor();
+                        var ids = new List<IExpression>();
+                        for (int i = 0; i < loopInitializer.Instructions.Count - 1; i++)
+                        {
+                            ids.Add(((Assignment)loopInitializer.Instructions[i]).Right);
+                            loopInitializer.Instructions.RemoveAt(i);
+                            i--;
+                        }
+                        gFor.Iterator = new Assignment(a3.Left, new IdentifierRefList(ids));
+                        
+                        var body = node.Successors[0];
+                        if (body.Instructions[0] is Assignment)
+                        {
+                            body.Instructions.RemoveAt(0);
+                        }
+
+                        gFor.Body = body;
+                        gFor.Body.MarkCodegenerated(f.Id);
+                        if (!usedFollows.Contains(node.LoopFollow))
+                        {
+                            gFor.Follow = node.LoopFollow;
+                            usedFollows.Add(node.LoopFollow);
+                            node.LoopFollow.MarkCodegenerated(f.Id);
+                        }
+                        if (loopInitializer.Instructions.Any() && loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] is Jump)
+                        {
+                            loopInitializer.Instructions[loopInitializer.Instructions.Count() - 1] = gFor;
+                        }
+                        else
+                        {
+                            loopInitializer.Instructions.Add(gFor);
+                        }
+                        node.MarkCodegenerated(f.Id);
+                        // The head might be the follow of an if statement, so do this to not codegen it
+                        usedFollows.Add(node);
+                    }
 
                     // Match a while
                     else if (node.Instructions.First() is Jump loopJump4 && loopJump4.Condition is { } loopCondition4)
