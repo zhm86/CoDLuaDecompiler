@@ -335,19 +335,17 @@ namespace CoDHVKDecompiler.Decompiler
                         break;
                     case LuaOpCode.HKS_OPCODE_TEST:
                     case LuaOpCode.HKS_OPCODE_TEST_R1:
-                        // This op is weird
                         instrs.Add(i.C == 0
                             ? new Jump(function.GetLabel((uint) (pos + 2)), RegisterReference(i.A))
                             : new Jump(function.GetLabel((uint) (pos + 2)),
                                 new UnaryOp(RegisterReference(i.A), UnOperationType.OpNot)));
                         break;
                     case LuaOpCode.HKS_OPCODE_TESTSET:
-                        // This op is weird
                         instrs.Add(i.C == 0
-                            ? new Jump(function.GetLabel((uint) (pos + 2)),
-                                new BinOp(RKIR(luaFunction, i.B), new Constant(0.0, -1), BinOperationType.OpNotEqual))
-                            : new Jump(function.GetLabel((uint) (pos + 2)),
-                                new BinOp(RKIR(luaFunction, i.B), new Constant(0.0, -1), BinOperationType.OpEqual)));
+                            ? new Jump(function.GetLabel((uint) (pos + 2)), RKIR(luaFunction, i.B))
+                                {TestsetType = BinOperationType.OpAnd, TestsetLocation = _symbolTable.GetRegister(i.A)}
+                            : new Jump(function.GetLabel((uint) (pos + 2)), RKIR(luaFunction, i.B))
+                                {TestsetType = BinOperationType.OpOr, TestsetLocation = _symbolTable.GetRegister(i.A)});
                         instrs.Add(new Assignment(_symbolTable.GetRegister(i.A), new IdentifierReference(_symbolTable.GetRegister(i.B))));
                         break;
                     case LuaOpCode.HKS_OPCODE_SETTABLE:

@@ -7,7 +7,7 @@ namespace CoDHVKDecompiler.CLI
 {
     public class GithubUpdateChecker
     {
-        private const string Version = "1.1.2";
+        private const string Version = "1.1.3";
         private const string RepositoryOwner = "JariKCoding";
         private const string RepositoryName = "CoDHVKDecompiler";
 

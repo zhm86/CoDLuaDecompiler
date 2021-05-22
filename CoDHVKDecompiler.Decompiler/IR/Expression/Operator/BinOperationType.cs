@@ -2,6 +2,7 @@ namespace CoDHVKDecompiler.Decompiler.IR.Expression.Operator
 {
     public enum BinOperationType : byte
     {
+        None,
         OpAdd,
         OpSub,
         OpMul,

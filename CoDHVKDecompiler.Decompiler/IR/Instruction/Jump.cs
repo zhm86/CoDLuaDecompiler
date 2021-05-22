@@ -11,6 +11,13 @@ namespace CoDHVKDecompiler.Decompiler.IR.Instruction
         public Label Dest { get; set; }
         public bool Conditional { get; set; }
         public IExpression Condition { get; set; }
+
+        public bool IsTestSet
+        {
+            get => TestsetType != BinOperationType.None;
+        }
+        public BinOperationType TestsetType { get; set; } = BinOperationType.None;
+        public Identifier TestsetLocation { get; set; }
         public BasicBlock BlockDest { get; set; }
         
         // Lua 5.1 and HKS has a post-jump assignment that needs to be put at the top of the successor block
