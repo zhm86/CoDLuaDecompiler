@@ -31,9 +31,9 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
                         l.UsageCount--;
                     else
                         f.Instructions.RemoveAt(i + 3);
-                    f.Instructions.RemoveRange(i, 3);
+                    f.Instructions.RemoveRange(i + 1, 2);
                     
-                    f.Instructions.Insert(i, new Assignment(ir.Identifier, new BinOp(a.Right, a2.Right, BinOperationType.OpOr)));
+                    f.Instructions.Insert(i + 1, new Assignment(ir.Identifier, new BinOp(new IdentifierReference(a.Left[0].Identifier), a2.Right, BinOperationType.OpOr)));
                 }
             }
         }
