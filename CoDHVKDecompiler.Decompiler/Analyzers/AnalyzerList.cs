@@ -18,7 +18,8 @@ namespace CoDHVKDecompiler.Decompiler.Analyzers
             new UnusedLabelsAnalyzer(),
             new RemovingDataAnalyzer(),
             
-            new OrOperatorAnalyzer(),
+            new TestsetAnalyzer(),
+            new OrAndOperatorAnalyzer(),
             new TernaryOperatorAnalyzer(),
             new ConstructCfgAnalyzer(),
             new IndeterminateArgumentsAnalyzer(),
