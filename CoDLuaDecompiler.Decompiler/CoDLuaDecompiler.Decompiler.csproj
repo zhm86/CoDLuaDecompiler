@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>CoDLuaDecompiler.Decompiler</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\CoDLuaDecompiler.Common\CoDLuaDecompiler.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Analyzers\Shared" />
+    </ItemGroup>
+
+</Project>

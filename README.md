@@ -1,7 +1,7 @@
 # Overview
-[![Releases](https://img.shields.io/github/downloads/JariKCoding/CoDHVKDecompiler/total.svg)](https://github.com/JariKCoding/CoDHVKDecompiler/)
+[![Releases](https://img.shields.io/github/downloads/JariKCoding/CoDHVKDecompiler/total.svg)](https://github.com/JariKCoding/CoDLuaDecompiler/)
 
-**CoDHVKDecompiler** is a lua decompiler for Havok Scripts from various Call Of Duty games. It's main purpose is to provide access to scripts that Treyarch did not provide in the Call of Duty: Black Ops III Mod Tools and to give greater insight into how Treyarch and the other studios achieved certain things, rebuild menus from the game, etc.
+**CoDLuaDecompiler** is a lua decompiler for Lua Scripts from various Call Of Duty games. It's main purpose is to provide access to scripts that Treyarch did not provide in the Call of Duty: Black Ops III Mod Tools and to give greater insight into how Treyarch and the other studios achieved certain things, rebuild menus from the game, etc.
 
 Supports following games out of the box: **BlackOps2**, **BlackOps3**, **BlackOps4**, **Ghosts**, **AdvancedWarfare**, **InfiniteWarfare**, **ModernWarfareRemastered** and **WorldWar2**
 
@@ -14,7 +14,6 @@ This is made from Katalash's DSLuaDecompiler and this wouldn't be possible witho
 
 ### What can be improved
 
-- Not all files get decompiled yet
 - Still has some errors with different loops that need to be debugged
 
 ### How to Use 
@@ -24,7 +23,7 @@ This is made from Katalash's DSLuaDecompiler and this wouldn't be possible witho
 
 ## Download
 
-The latest version can be found on the [Releases Page](https://github.com/JariKCoding/CoDHVKDecompiler/releases).
+The latest version can be found on the [Releases Page](https://github.com/JariKCoding/CoDLuaDecompiler/releases).
 
 ## Requirements
 
@@ -39,4 +38,4 @@ The latest version can be found on the [Releases Page](https://github.com/JariKC
 
 ## License 
 
-CoDHVKDecompiler is licensed under the MIT license and its source code is free to use and modify. CoDHVKDecompiler comes with NO warranty, any damages caused are solely the responsibility of the user. See the LICENSE file for more information.
+CoDLuaDecompiler is licensed under the MIT license and its source code is free to use and modify. CoDLuaDecompiler comes with NO warranty, any damages caused are solely the responsibility of the user. See the LICENSE file for more information.

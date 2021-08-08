@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>CoDLuaDecompiler.CLI</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\CoDLuaDecompiler.AssetExporter\CoDLuaDecompiler.AssetExporter.csproj" />
+      <ProjectReference Include="..\CoDLuaDecompiler.Common\CoDLuaDecompiler.Common.csproj" />
+      <ProjectReference Include="..\CoDLuaDecompiler.Decompiler\CoDLuaDecompiler.Decompiler.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Autofac" Version="6.1.0" />
+      <PackageReference Include="GitHubUpdate" Version="1.2.0" />
+    </ItemGroup>
+
+</Project>

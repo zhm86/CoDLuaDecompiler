@@ -1,4 +1,4 @@
-# Prerequisites
+﻿# Prerequisites
 *.d
 
 # Compiled Object files
@@ -33,9 +33,9 @@
 *.pdb
 *.cache
 *.CopyComplete
-obj/*
-bin/*
-.vs/*
+*/obj/*
+*/bin/*
+*/.vs/*
 *.user
 *.lock
 *.ide
