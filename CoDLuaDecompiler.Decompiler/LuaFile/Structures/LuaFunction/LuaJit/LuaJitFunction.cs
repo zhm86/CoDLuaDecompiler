@@ -208,9 +208,9 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit
             {
                 var number = isnumLo.Item2;
                 if ((number & 0x80000000) != 0)
-                    luaJitConstant = new LuaJitConstant(-0x100000000 + (long) number);
+                    luaJitConstant = new LuaJitConstant((double) -0x100000000 + number);
                 else
-                    luaJitConstant = new LuaJitConstant(number);
+                    luaJitConstant = new LuaJitConstant((double) number);
             }
 
             return luaJitConstant;

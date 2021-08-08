@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CoDLuaDecompiler.Decompiler.IR;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
@@ -11,6 +12,7 @@ using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures.LuaJit;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaOpCodeTable.LuaJit;
+using ValueType = CoDLuaDecompiler.Decompiler.IR.Identifiers.ValueType;
 
 namespace CoDLuaDecompiler.Decompiler.InstructionConverters
 {
@@ -306,7 +308,7 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                     case "KSHORT":
                         instrs.Add(new Assignment(
                             _symbolTable.GetRegister(i.A),
-                            new Constant(i.CD, -1)));
+                            new Constant( (int) i.CD, -1)));
                         break;
                     case "KNUM":
                         instrs.Add(new Assignment(
@@ -318,6 +320,12 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                             _symbolTable.GetRegister(i.A),
                             GetPrimitiveConstant(i.CD)
                             ));
+                        break;
+                    case "KNIL":
+                        var nlist = new List<IdentifierReference>();
+                        for (int arg = (int) i.A; arg <= i.B; arg++)
+                            nlist.Add(new IdentifierReference(_symbolTable.GetRegister((uint) arg)));
+                        instrs.Add(new Assignment(nlist, new Constant(ValueType.Nil, -1)));
                         break;
                     
                     // Upvalue and function ops
@@ -374,6 +382,12 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                             new IdentifierReference(_symbolTable.GetRegister(i.B), ConvertLuaJitConstant(luaFunction.Constants[(int) i.CD], (int) i.CD))
                             ));
                         break;
+                    case "TGETB":
+                        instrs.Add(new Assignment(
+                            RegisterReference(i.A),
+                            new IdentifierReference(_symbolTable.GetRegister(i.B), new Constant((int) i.CD, -1))
+                        ));
+                        break;
                     case "TSETV":
                         instrs.Add(new Assignment(
                             new IdentifierReference(_symbolTable.GetRegister(i.B), RegisterReference(i.CD)),
@@ -425,6 +439,14 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         funcCall.IsIndeterminateArgumentCount = (i.B == 0);
                         instrs.Add(new Assignment(rets, funcCall));
                         break;
+                    case "CALLT":
+                        args = new List<IExpression>();
+                        for (uint j = i.A + 2; j <= i.A + i.CD; j ++)
+                            args.Add(new IdentifierReference(_symbolTable.GetRegister(j)));
+                        
+                        funcCall = new FunctionCall(new IdentifierReference(_symbolTable.GetRegister(i.A)), args);
+                        instrs.Add(new Return(funcCall));
+                        break;
                     case "VARG":
                         rets = new List<IdentifierReference>();
 
@@ -437,6 +459,12 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         break;
                     
                     // Returns
+                    case "RET":
+                        args = new List<IExpression>();
+                        for (uint j = i.A; j < i.A + i.CD - 1; j++)
+                            args.Add(new IdentifierReference(_symbolTable.GetRegister(j)));                            
+                        instrs.Add(new Return(args));
+                        break;
                     case "RET0":
                         instrs.Add(new Return());
                         break;
@@ -470,7 +498,7 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         break;
                     
                     default:
-                        //Console.WriteLine($@"Missing op: {i.OpCode} {i.A} {i.B} {i.C}");
+                        Console.WriteLine($@"Missing op: {i.OpCode.Name} {i.A} {i.B} {i.CD}");
                         instrs.Add(new PlaceholderInstruction($@"{i.OpCode.Name} {i.A} {i.B} {i.CD}"));
                         break;
                 }
