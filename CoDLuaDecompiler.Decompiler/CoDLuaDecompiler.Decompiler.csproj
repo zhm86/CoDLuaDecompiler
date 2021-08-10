@@ -6,10 +6,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CoDLuaDecompiler.Common\CoDLuaDecompiler.Common.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Folder Include="Analyzers\Shared" />
     </ItemGroup>
 

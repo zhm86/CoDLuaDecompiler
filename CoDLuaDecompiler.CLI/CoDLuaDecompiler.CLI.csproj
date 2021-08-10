@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\CoDLuaDecompiler.AssetExporter\CoDLuaDecompiler.AssetExporter.csproj" />
-      <ProjectReference Include="..\CoDLuaDecompiler.Common\CoDLuaDecompiler.Common.csproj" />
       <ProjectReference Include="..\CoDLuaDecompiler.Decompiler\CoDLuaDecompiler.Decompiler.csproj" />
     </ItemGroup>
 

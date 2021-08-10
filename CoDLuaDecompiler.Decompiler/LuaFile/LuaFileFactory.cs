@@ -9,6 +9,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
     {
         public static ILuaFile Create(BinaryReader reader)
         {
+            reader.BaseStream.Seek(0, SeekOrigin.Begin);
             var bytes = reader.ReadBytes(13);
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
 
