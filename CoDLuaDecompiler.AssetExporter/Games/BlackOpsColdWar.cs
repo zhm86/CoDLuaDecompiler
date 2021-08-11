@@ -43,7 +43,11 @@ namespace CoDLuaDecompiler.AssetExporter.Games
                 
                 // Check XModel Hash
                 if (AssetExport.Reader.ReadUInt64(xmodelPoolData.PoolPointer) == 0x04647533e968c910)
-                    return null;
+                {
+                    var luaPoolData = AssetExport.Reader.ReadStruct<AssetPool>(baseAddress + gameOffset + sizeof(AssetPool) * 124);
+
+                    return FetchFiles(luaPoolData);
+                }
             }
             
             var dbAssetsScan = AssetExport.Reader.FindBytes(new byte?[] { 0x40, 0x53, 0x48, 0x83, 0xEC, null, 0x0F, 0xB6, null, 0x48, 0x8D, 0x05, null, null, null, null, 0x48, 0xC1, 0xE2, 05 }, baseAddress, baseAddress + AssetExport.Reader.GetModuleMemorySize(), true);
@@ -59,28 +63,33 @@ namespace CoDLuaDecompiler.AssetExporter.Games
                 {
                     var luaPoolData = AssetExport.Reader.ReadStruct<AssetPool>(assetPoolAddress + sizeof(AssetPool) * 124);
 
-                    var filesList = new List<LuaFileData>();
-                    for (int i = 0; i < luaPoolData.PoolSize; i++)
-                    {
-                        var luaFile = AssetExport.Reader.ReadStruct<LuaFile>(luaPoolData.PoolPointer + (i * luaPoolData.AssetSize));
-
-                        if (luaFile.DataSize == 0 || luaFile.StartLocation == 0)
-                            continue;
-                
-                        var luaFileData = AssetExport.Reader.ReadBytes(luaFile.StartLocation, luaFile.DataSize);
-                        
-                        filesList.Add(new LuaFileData()
-                        {
-                            Reader = new BinaryReader(new MemoryStream(luaFileData)),
-                            Hash = luaFile.Hash & 0xFFFFFFFFFFFFFFF,
-                        });
-                    }
-                    
-                    return filesList;
+                    return FetchFiles(luaPoolData);
                 }
             }
 
             return null;
+        }
+
+        private List<LuaFileData> FetchFiles(AssetPool luaPoolData)
+        {
+            var filesList = new List<LuaFileData>();
+            for (int i = 0; i < luaPoolData.PoolSize; i++)
+            {
+                var luaFile = AssetExport.Reader.ReadStruct<LuaFile>(luaPoolData.PoolPointer + (i * luaPoolData.AssetSize));
+
+                if (luaFile.DataSize == 0 || luaFile.StartLocation == 0)
+                    continue;
+                
+                var luaFileData = AssetExport.Reader.ReadBytes(luaFile.StartLocation, luaFile.DataSize);
+                        
+                filesList.Add(new LuaFileData()
+                {
+                    Reader = new BinaryReader(new MemoryStream(luaFileData)),
+                    Hash = luaFile.Hash & 0xFFFFFFFFFFFFFFF,
+                });
+            }
+
+            return filesList;
         }
     }
 }

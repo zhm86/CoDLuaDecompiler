@@ -26,6 +26,7 @@ namespace CoDLuaDecompiler.AssetExporter
         {
             { "BlackOps4",      new Tuple<IGame, bool>(new BlackOps4(),    true) },
             { "BlackOpsColdWar",      new Tuple<IGame, bool>(new BlackOpsColdWar(),    true) },
+            { "ModernWarfare",      new Tuple<IGame, bool>(new ModernWarfare(),    true) },
         };
         
         public void ExportAssets()
