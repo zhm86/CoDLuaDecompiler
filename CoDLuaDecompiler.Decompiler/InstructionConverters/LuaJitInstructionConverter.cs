@@ -447,6 +447,26 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         funcCall = new FunctionCall(new IdentifierReference(_symbolTable.GetRegister(i.A)), args);
                         instrs.Add(new Return(funcCall));
                         break;
+                    case "ITERC":
+                    case "ITERN":
+                        args = new List<IExpression>();
+                        rets = new List<IdentifierReference>();
+                        // Create references for a .. a + b - 2
+                        if (i.B >= 2)
+                        {
+                            for (uint j = i.A; j <= i.A + i.B - 2; j++)
+                                rets.Add(new IdentifierReference(_symbolTable.GetRegister(j)));
+                        }
+                        // Get references for a + 2 .. a + c
+                        for (uint j = i.A - 2; j <= i.A - 1; j ++)
+                            args.Add(new IdentifierReference(_symbolTable.GetRegister(j)));
+                        
+                        funcCall = new FunctionCall(new IdentifierReference(_symbolTable.GetRegister(i.A - 3)), args);
+                        funcCall.IsIndeterminateArgumentCount = (i.B == 0);
+                        instrs.Add(new Assignment(rets, funcCall));
+                        instrs.Add(new Jump(function.GetLabel((uint)(pos + 2)), new BinOp(RegisterReference(i.A), new Constant(ValueType.Nil, -1), BinOperationType.OpEqual)));
+                        instrs.Add(new Assignment(_symbolTable.GetRegister(i.A - 1), new IdentifierReference(_symbolTable.GetRegister(i.A))));
+                        break;
                     case "VARG":
                         rets = new List<IdentifierReference>();
 
@@ -459,6 +479,13 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         break;
                     
                     // Returns
+                    case "RETM":
+                        args = new List<IExpression>();
+                        for (uint j = i.A; j < i.A + i.CD; j++)
+                            args.Add(new IdentifierReference(_symbolTable.GetRegister(j)));
+                        var rtrn = new Return(args) { IsIndeterminateReturnCount = i.B == 0 };
+                        instrs.Add(rtrn);
+                        break;
                     case "RET":
                         args = new List<IExpression>();
                         for (uint j = i.A; j < i.A + i.CD - 1; j++)
@@ -473,7 +500,10 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         break;
                     
                     // Loops and branches. I/J = interp/JIT, I/C/L = init/call/loop
-                    /*case "FORI":
+                    case "FORI":
+                        instrs.Add(new Jump(function.GetLabel((uint) (pos + i.CD))));
+                        break;
+                    case "FORL":
                         instrs.Add(new Assignment(new IdentifierReference(_symbolTable.GetRegister(i.A)), new BinOp(new IdentifierReference(_symbolTable.GetRegister(i.A)),
                             new IdentifierReference(_symbolTable.GetRegister(i.A + 2)), BinOperationType.OpAdd)));
                         var jmp = new Jump(function.GetLabel((uint) (pos + 1 + i.CD)), new BinOp(new IdentifierReference(_symbolTable.GetRegister(i.A)),
@@ -482,17 +512,11 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         pta.PropagateAlways = true;
                         jmp.PostTakenAssignment = pta;
                         instrs.Add(jmp);
-                        break;*/
-                    /*case "FORL":
-                        instrs.Add(new Assignment(new IdentifierReference(_symbolTable.GetRegister(i.A)), new BinOp(new IdentifierReference(_symbolTable.GetRegister(i.A)),
-                            new IdentifierReference(_symbolTable.GetRegister(i.A + 2)), BinOperationType.OpAdd)));
-                        var jmp = new Jump(function.GetLabel((uint) (pos + 1 + i.CD)), new BinOp(new IdentifierReference(_symbolTable.GetRegister(i.A)),
-                            new IdentifierReference(_symbolTable.GetRegister(i.A + 1)), BinOperationType.OpLoopCompare));
-                        var pta = new Assignment(_symbolTable.GetRegister(i.A + 3), RegisterReference(i.A));
-                        pta.PropagateAlways = true;
-                        jmp.PostTakenAssignment = pta;
-                        instrs.Add(jmp);
-                        break;*/
+                        break;
+                    case "ITERL":
+                        instrs.Add(new Jump(function.GetLabel((uint) (pos + i.CD + 1))));
+                        break;
+                    case "LOOP":
                     case "JMP":
                         instrs.Add(new Jump(function.GetLabel((uint) ((uint) pos + i.CD + 1))));
                         break;
