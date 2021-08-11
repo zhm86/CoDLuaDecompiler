@@ -27,6 +27,16 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.LuaJit
                             b.Instructions.RemoveAt(i);
                         }
                     }
+                    for(int i = 1; i < b.Instructions.Count; i++)
+                    {
+                        if (b.Instructions[i] is Return {IsIndeterminateReturnCount: true} r && 
+                            b.Instructions[i - 1] is Assignment {Right: FunctionCall fc2})
+                        {
+                            changes = true;
+                            r.Expressions.Add(fc2);
+                            b.Instructions.RemoveAt(i - 1);
+                        }
+                    }
                 }
             }
         }
