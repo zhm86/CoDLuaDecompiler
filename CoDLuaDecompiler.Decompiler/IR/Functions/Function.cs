@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CoDLuaDecompiler.Decompiler.CFG;
+using CoDLuaDecompiler.Decompiler.Extensions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
@@ -43,7 +44,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
 
         public bool IsControlFlowGraph { get; set; } = false;
         public bool IsAST { get; set; } = false;
-        public static int IndentLevel { get; set; } = 0;
+        public int IndentLevel { get; set; } = 0;
         public bool IsInline { get; set; } = false;
         /// <summary>
         /// Upvalue binding symbold from parent closure
@@ -209,6 +210,8 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                 str.Append($" --[[{Id}]]");
 #endif
                 str.Append($" {funcName}(");
+                if (Parameters.Count > 0 || IsVarArgs)
+                    str.Append(" ");
                 // Add all the parameters
                 for (int i = 0; i < Parameters.Count; i++)
                 {
@@ -223,13 +226,17 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                         str.Append(", ");
                     str.Append("...");
                 }
+                if (Parameters.Count > 0 || IsVarArgs)
+                    str.Append(" ");
                 str.Append(")\n");
-                IndentLevel += 1;
             }
 
             if (IsAST)
             {
-                str.Append(StartBlock.PrintBlock(IndentLevel) + "\n");
+                var block = StartBlock.PrintBlock(IndentLevel);
+                if (Parent != null)
+                    block = block.AddIndent();
+                str.Append(block + "\n");
             }
             else if (IsControlFlowGraph)
             {
@@ -239,26 +246,13 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                     {
                         continue;
                     }
-                    for (int i = 0; i < IndentLevel; i++)
-                    {
-                        if (i == IndentLevel - 1)
-                        {
-                            str.Append("   ");
-                            continue;
-                        }
-                        str.Append("\t");
-                    }
                     str.Append(b.ToStringWithLoop() + "\n");
                     foreach (var inst in b.PhiFunctions.Values)
                     {
-                        for (int i = 0; i < IndentLevel; i++)
-                            str.Append("\t");
                         str.Append(inst + "\n");
                     }
                     foreach (var inst in b.Instructions)
                     {
-                        for (int i = 0; i < IndentLevel; i++)
-                            str.Append("\t");
                         str.Append(inst + "\n");
                     }
 
@@ -267,8 +261,6 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                     if (lastinst != null && ((lastinst is Jump j && j.Conditional && b.Successors[0].Id != (b.Id + 1)) ||
                                              (!(lastinst is Jump) && !(lastinst is Return) && b.Successors[0].Id != (b.Id + 1))))
                     {
-                        for (int i = 0; i < IndentLevel; i++)
-                            str.Append("\t");
                         str.Append("(goto " + b.Successors[0] + ")" + "\n");
                     }
                 }
@@ -279,23 +271,11 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                 {
                     var inst = Instructions[n];
                     str.Append($@"{n}-{inst.OpLocation:D3} ");
-                    for (int i = 0; i < IndentLevel; i++)
-                    {
-                        if (inst is Label && i == IndentLevel - 1)
-                        {
-                            str.Append("   ");
-                            continue;
-                        }
-                        str.Append("\t");
-                    }
                     str.Append(inst + "\n");
                 }
             }
-            IndentLevel -= 1;
             if (Parent != null)
             {
-                for (int i = 0; i < IndentLevel; i++)
-                    str.Append("\t");
                 str.Append("end");
                 if (!IsInline)
                     str.Append("\n");

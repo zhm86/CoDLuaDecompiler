@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CoDLuaDecompiler.Decompiler.Extensions;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures.LuaJit;
@@ -88,26 +89,15 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
             if (usePrettyPrint)
             {
                 str.Append("\n");
-                Function.IndentLevel++;
             }
 
             // Pattern match special lua this call
             for (int i = 0; i < Expressions.Count; i++)
             {
-                for (int j = 0; j < Function.IndentLevel; j++)
-                    str.Append("\t");
-                
-                str.Append(Expressions[i]);
+                str.Append("\t" + Expressions[i].ToString().AddIndent(true));
                 if (i != Expressions.Count - 1)
                     str.Append(",");
                 str.Append("\n");
-            }
-
-            if (usePrettyPrint)
-            {
-                Function.IndentLevel--;
-                for (int j = 0; j < Function.IndentLevel; j++)
-                    str.Append("\t");
             }
             
             str.Append("}");

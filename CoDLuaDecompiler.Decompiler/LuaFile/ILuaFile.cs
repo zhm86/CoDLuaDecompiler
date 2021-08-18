@@ -15,5 +15,6 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
         ILuaFunction MainFunction { get; }
         IInstructionConverter InstructionConverter { get; }
         IAnalyzerList AnalyzerList { get; }
+        IAnalyzerList FileAnalyzerList { get; }
     }
 }

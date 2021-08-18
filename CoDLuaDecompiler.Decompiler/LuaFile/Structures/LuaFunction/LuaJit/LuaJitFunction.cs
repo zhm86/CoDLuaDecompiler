@@ -138,6 +138,16 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit
             if (type >= 5)
             {
                 var str = Encoding.UTF8.GetString(Reader.ReadBytes((int) (type - 5)));
+                
+                if (!String.IsNullOrEmpty(str) && str.Length > 10 && str.StartsWith("x64:"))
+                {
+                    var hash = Convert.ToUInt64(str.Substring(4).Replace(".lua", ""), 16) & 0xFFFFFFFFFFFFFFF;
+                    if (Decompiler.HashEntries.ContainsKey(hash))
+                        str = Decompiler.HashEntries[hash];
+                    else
+                        // Replace the hash with the masked version so it's easier to find the actual file back
+                        str = $"x64:{hash:x}";
+                }
 
                 return new LuaJitConstant(str);
             }

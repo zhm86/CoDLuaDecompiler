@@ -4,36 +4,40 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using CoDLuaDecompiler.AssetExporter.Games;
 using CoDLuaDecompiler.AssetExporter.Util;
 using CoDLuaDecompiler.Decompiler;
-using CoDLuaDecompiler.Decompiler.IR.Instruction;
 using CoDLuaDecompiler.Decompiler.LuaFile;
+using CoDLuaDecompiler.HashResolver;
 
 namespace CoDLuaDecompiler.AssetExporter
 {
     public class AssetExport : IAssetExport
     {
         private readonly IDecompiler _decompiler;
+        private readonly Dictionary<ulong, string> _hashEntries;
         public static ProcessReader Reader { get; set; }
 
-        public AssetExport(IDecompiler decompiler)
+        public AssetExport(IDecompiler decompiler, IPackageIndex packageIndex)
         {
             _decompiler = decompiler;
+            _hashEntries = packageIndex.GetEntries();
         }
         
         public static Dictionary<string, Tuple<IGame, bool>> Games = new Dictionary<string, Tuple<IGame, bool>>()
         {
+            { "BlackOps3",      new Tuple<IGame, bool>(new BlackOps3(),    true) },
             { "BlackOps4",      new Tuple<IGame, bool>(new BlackOps4(),    true) },
             { "BlackOpsColdWar",      new Tuple<IGame, bool>(new BlackOpsColdWar(),    true) },
             { "ModernWarfare",      new Tuple<IGame, bool>(new ModernWarfare(),    true) },
         };
         
-        public void ExportAssets()
+        public void ExportAssets(bool dumpRaw = false)
         {
-            Process[] Processes = Process.GetProcesses();
+            Process[] processes = Process.GetProcesses();
             
-            foreach(var process in Processes)
+            foreach(var process in processes)
             {
                 // Check process name against game list
                 if(Games.ContainsKey(process.ProcessName))
@@ -49,7 +53,7 @@ namespace CoDLuaDecompiler.AssetExporter
                     if (files == null)
                         Console.WriteLine("This game is supported, but this update is not.");
                     else
-                        HandleLuaFiles(files, game.Item1);
+                        HandleLuaFiles(files, game.Item1, dumpRaw);
                     // Done
                     return;
                 }
@@ -66,13 +70,21 @@ namespace CoDLuaDecompiler.AssetExporter
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
 
-        private void HandleLuaFiles(List<LuaFileData> luaFiles, IGame game)
+        private void HandleLuaFiles(List<LuaFileData> luaFiles, IGame game, bool dumpRaw = false)
         {
-            luaFiles.ForEach(file =>
+            Parallel.ForEach(luaFiles, file =>
             {
                 string filePath = file.Name;
                 if (String.IsNullOrEmpty(filePath))
-                    filePath = String.Format("Luafile_{0:x}.luac", file.Hash & 0xFFFFFFFFFFFFFFF);
+                {
+                    ulong hashNumber = (ulong) (file.Hash & 0xFFFFFFFFFFFFFFF);
+
+                    if (_hashEntries.ContainsKey(hashNumber))
+                        filePath = _hashEntries[hashNumber];
+                    else
+                        filePath = String.Format("Luafile_{0:x}", hashNumber);
+                }
+                    
 
                 var directory = Path.GetDirectoryName(game.ExportFolder + filePath);
                 if (!Directory.Exists(directory))
@@ -91,6 +103,15 @@ namespace CoDLuaDecompiler.AssetExporter
                         hash = GetHash(file);
                         if (checksum == hash)
                             return;
+                    }
+                }
+
+                if (dumpRaw)
+                {
+                    using (var fileStream = File.Create(Path.ChangeExtension(game.ExportFolder + filePath, ".luac")))
+                    {
+                        file.Reader.BaseStream.Seek(0, SeekOrigin.Begin);
+                        file.Reader.BaseStream.CopyTo(fileStream);
                     }
                 }
                 

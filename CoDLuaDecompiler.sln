@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoDLuaDecompiler.Decompiler
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoDLuaDecompiler.AssetExporter", "CoDLuaDecompiler.AssetExporter\CoDLuaDecompiler.AssetExporter.csproj", "{0D26C9A1-0979-4F03-9758-B800DA37FE32}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoDLuaDecompiler.HashResolver", "CoDLuaDecompiler.HashResolver\CoDLuaDecompiler.HashResolver.csproj", "{1E56905C-05D8-4CAA-A57B-42702D7857A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{0D26C9A1-0979-4F03-9758-B800DA37FE32}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D26C9A1-0979-4F03-9758-B800DA37FE32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D26C9A1-0979-4F03-9758-B800DA37FE32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E56905C-05D8-4CAA-A57B-42702D7857A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E56905C-05D8-4CAA-A57B-42702D7857A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E56905C-05D8-4CAA-A57B-42702D7857A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E56905C-05D8-4CAA-A57B-42702D7857A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

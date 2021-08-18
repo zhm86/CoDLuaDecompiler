@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CoDLuaDecompiler.Decompiler.IR;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
 using CoDLuaDecompiler.Decompiler.IR.Expression.Operator;
@@ -323,7 +324,7 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         break;
                     case "KNIL":
                         var nlist = new List<IdentifierReference>();
-                        for (int arg = (int) i.A; arg <= i.B; arg++)
+                        for (int arg = (int) i.A; arg <= i.CD; arg++)
                             nlist.Add(new IdentifierReference(_symbolTable.GetRegister((uint) arg)));
                         instrs.Add(new Assignment(nlist, new Constant(ValueType.Nil, -1)));
                         break;
@@ -439,6 +440,15 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         funcCall.IsIndeterminateArgumentCount = (i.B == 0);
                         instrs.Add(new Assignment(rets, funcCall));
                         break;
+                    case "CALLMT":
+                        args = new List<IExpression>();
+                        for (uint j = i.A + 2; j <= i.A + i.CD; j ++)
+                            args.Add(new IdentifierReference(_symbolTable.GetRegister(j)));
+                        
+                        funcCall = new FunctionCall(new IdentifierReference(_symbolTable.GetRegister(i.A)), args);
+                        funcCall.IsIndeterminateArgumentCount = (i.B == 0);
+                        instrs.Add(new Return(funcCall));
+                        break;
                     case "CALLT":
                         args = new List<IExpression>();
                         for (uint j = i.A + 2; j <= i.A + i.CD; j ++)
@@ -476,6 +486,9 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         instrs.Add(new Assignment(
                             rets,
                             new IdentifierReference(_symbolTable.GetVarargs())));
+                        break;
+                    case "ISNEXT":
+                        instrs.Add(new Jump(function.GetLabel((uint) ((uint) pos + i.CD + 1))));
                         break;
                     
                     // Returns

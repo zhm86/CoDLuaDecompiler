@@ -41,7 +41,10 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     f.Instructions.Insert(f.Instructions.IndexOf(j2.Dest), new Assignment(new IdentifierReference(j.TestsetLocation), 
                         new BinOp(new IdentifierReference(newLeftId), new IdentifierReference(newRightId), j.TestsetType)));
                     f.Instructions.RemoveAt(i);
-                    f.Instructions.Remove(j.Dest);
+                    if (j.Dest.UsageCount == 1)
+                        f.Instructions.Remove(j.Dest);
+                    else
+                        j.Dest.UsageCount--;
                     f.Instructions.Remove(j2);
                     if (j2.Dest.UsageCount > 1)
                         j2.Dest.UsageCount--;

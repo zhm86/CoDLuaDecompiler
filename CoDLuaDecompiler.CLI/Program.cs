@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using CoDLuaDecompiler.AssetExporter;
 using CoDLuaDecompiler.Decompiler;
 using CoDLuaDecompiler.Decompiler.LuaFile;
@@ -83,7 +84,7 @@ namespace CoDLuaDecompiler.CLI
             if (args.Contains("--export"))
             {
                 Console.WriteLine("Starting asset export from memory.");
-                _assetExport.ExportAssets();
+                _assetExport.ExportAssets(args.Contains("--dump"));
             }
             
             // parse files from arguments
@@ -91,7 +92,7 @@ namespace CoDLuaDecompiler.CLI
             
             Console.WriteLine($"Total of {files.Count} to process.");
 
-            files.ForEach(HandleFile);
+            Parallel.ForEach(files, HandleFile);
         }
     }
 }

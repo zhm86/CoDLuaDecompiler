@@ -165,6 +165,9 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
                 }
                 ret += Function + "(";
             }
+
+            if (Arguments.Count > 0 && beginarg != Arguments.Count)
+                ret += " ";
             for (int i = beginarg; i < Arguments.Count(); i++)
             {
                 ret += Arguments[i].ToString();
@@ -173,6 +176,8 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
                     ret += ", ";
                 }
             }
+            if (Arguments.Count > 0 && beginarg != Arguments.Count)
+                ret += " ";
             ret += ")";
             return ret;
         }

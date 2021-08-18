@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Analyzers\Shared" />
+      <ProjectReference Include="..\CoDLuaDecompiler.HashResolver\CoDLuaDecompiler.HashResolver.csproj" />
     </ItemGroup>
 
 </Project>

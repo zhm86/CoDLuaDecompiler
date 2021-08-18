@@ -16,6 +16,19 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.Havok
             Reader.ReadInt32(); // Unknown, always null
             var str = Encoding.ASCII.GetString(Reader.ReadBytes(length - 1));
             Reader.ReadByte();
+
+            // Check if it's a require string
+            if (!String.IsNullOrEmpty(str) && str.Length > 10 && str.StartsWith("x64:"))
+            {
+                // Grab the hash and check if we have it dehashed
+                var hash = Convert.ToUInt64(str.Substring(4), 16) & 0xFFFFFFFFFFFFFFF;
+                if (Decompiler.HashEntries.ContainsKey(hash))
+                    str = Decompiler.HashEntries[hash];
+                else
+                    // Replace the hash with the masked version so it's easier to find the actual file back
+                    str = $"x64:{hash:x}";
+            }
+
             return str;
         }
 
@@ -31,7 +44,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.Havok
 
         protected override ulong ReadHash()
         {
-            return Reader.ReadUInt64();
+            return Reader.ReadUInt64() & 0xFFFFFFFFFFFFFFF;
         }
     }
 }

@@ -16,6 +16,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
         public ILuaFunction MainFunction { get; private set; }
         public virtual IInstructionConverter InstructionConverter { get; }
         public virtual IAnalyzerList AnalyzerList { get; }
+        public virtual IAnalyzerList FileAnalyzerList { get; }
 
         // private variables
         protected readonly BinaryReader Reader;

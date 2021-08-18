@@ -5,6 +5,7 @@ using Autofac;
 using CoDLuaDecompiler.AssetExporter;
 using CoDLuaDecompiler.Decompiler;
 using CoDLuaDecompiler.Decompiler.LuaFile;
+using CoDLuaDecompiler.HashResolver;
 
 namespace CoDLuaDecompiler.CLI
 {
@@ -31,6 +32,7 @@ namespace CoDLuaDecompiler.CLI
             // CodHavokTool
             builder.RegisterType<GithubUpdateChecker>().SingleInstance();
             builder.RegisterType<AssetExport>().As<IAssetExport>().SingleInstance();
+            builder.RegisterType<PackageIndex>().As<IPackageIndex>().SingleInstance();
             builder.RegisterType<Program>().SingleInstance();
 
             var container = builder.Build();

@@ -14,6 +14,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Havok
     {
         public override IInstructionConverter InstructionConverter => new HavokInstructionConverter();
         public override IAnalyzerList AnalyzerList => new HavokAnalyzerList();
+        public override IAnalyzerList FileAnalyzerList => new HavokFileAnalyzerList();
         public HavokLuaFile(BinaryReader reader) : base(reader)
         {
         }

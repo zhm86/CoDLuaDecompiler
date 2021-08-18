@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CoDLuaDecompiler.Decompiler.CFG;
+using CoDLuaDecompiler.Decompiler.Extensions;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 
@@ -21,60 +23,50 @@ namespace CoDLuaDecompiler.Decompiler.IR.Instruction
 
         public override string WriteLua(int indentLevel)
         {
-            string ret = "";
+            StringBuilder str = new StringBuilder();
             if (IsElseIf)
-            {
-                ret = $@"elseif {Condition} then" + "\n";
-            }
+                str.Append($"elseif {Condition} then\n");
             else
-            {
-                ret = $@"if {Condition} then" + "\n";
-            }
+                str.Append($"if {Condition} then\n");
             if (TrueBody != null)
             {
-                Function.IndentLevel += 1;
-                ret += TrueBody.PrintBlock(indentLevel + 1);
-                Function.IndentLevel -= 1;
+                str.Append(TrueBody.PrintBlock(indentLevel).AddIndent());
             }
             if (FalseBody != null)
             {
-                ret += "\n";
+                str.Append("\n");
                 // Check for elseif
                 if (FalseBody.Instructions.Count() == 1 && FalseBody.Instructions.First() is IfStatement s && s.Follow == null)
                 {
                     s.IsElseIf = true;
-                    ret += FalseBody.PrintBlock(indentLevel);
+                    str.Append(FalseBody.PrintBlock(indentLevel));
                 }
                 else
                 {
                     for (int i = 0; i < indentLevel; i++)
-                    {
-                        ret += "\t";
-                    }
-                    ret += "else\n";
-                    Function.IndentLevel += 1;
-                    ret += FalseBody.PrintBlock(indentLevel + 1);
-                    Function.IndentLevel -= 1;
+                        str.Append("\t");
+                    str.Append("else\n");
+                    str.Append(FalseBody.PrintBlock(indentLevel).AddIndent());
                 }
             }
             if (!IsElseIf)
             {
-                ret += "\n";
+                str.Append("\n");
             }
             if (!IsElseIf)
             {
                 for (int i = 0; i < indentLevel; i++)
                 {
-                    ret += "\t";
+                    str.Append("\t");
                 }
-                ret += "end";
+                str.Append("end");
             }
             if (Follow != null && Follow.Instructions.Any())
             {
-                ret += "\n";
-                ret += Follow.PrintBlock(indentLevel);
+                str.Append("\n");
+                str.Append(Follow.PrintBlock(indentLevel));
             }
-            return ret;
+            return str.ToString();
         }
     }
 }

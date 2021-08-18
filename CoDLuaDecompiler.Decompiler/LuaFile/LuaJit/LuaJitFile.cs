@@ -16,6 +16,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.LuaJit
     {
         public override IInstructionConverter InstructionConverter => new LuaJitInstructionConverter();
         public override IAnalyzerList AnalyzerList => new LuaJitAnalyzerList();
+        public override IAnalyzerList FileAnalyzerList => new LuaJitFileAnalyzerList();
         public LuaJitFile(BinaryReader reader) : base(reader)
         {
         }

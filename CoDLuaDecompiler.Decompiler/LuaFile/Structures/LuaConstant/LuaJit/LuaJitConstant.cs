@@ -25,8 +25,16 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.LuaJit
         
         public LuaJitConstant(ulong num)
         {
-            Type = LuaJitConstantType.Hash;
-            HashValue = num;
+            if (Decompiler.HashEntries.ContainsKey(HashValue))
+            {
+                StringValue = Decompiler.HashEntries[HashValue];
+                Type = LuaJitConstantType.String;
+            }
+            else
+            {
+                Type = LuaJitConstantType.Hash;
+                HashValue = num;
+            }
         }
 
         public LuaJitConstant(LuaJitFunction func)

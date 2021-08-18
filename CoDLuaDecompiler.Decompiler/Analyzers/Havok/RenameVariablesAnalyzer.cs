@@ -62,13 +62,9 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     if (i is Assignment a && a.Right is FunctionCall fc && a.Left.Count == 1)
                     {
                         string name;
-                        if (fc.Function.ToString().Contains("LUI.UIElement.new"))
+                        if (fc.Function.ToString().StartsWith("LUI.UI") && fc.Function.ToString().EndsWith(".new") || fc.Function.ToString().Contains("CoD.Menu.NewForUIEditor"))
                         {
-                            name = "Widget";
-                        }
-                        else if (fc.Function.ToString().Contains("CoD.Menu.NewForUIEditor"))
-                        {
-                            name = "HudRef";
+                            name = "self";
                         }
                         else 
                             continue;
@@ -83,14 +79,14 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
             // Change parameter names for menus and widgets
             if (f.Blocks[0] != null && f.Blocks[0].Instructions.Count > 0 && f.Blocks[0].Instructions[0] is Assignment a2 && a2.Right is FunctionCall fc2)
             {
-                if (fc2.Function.ToString().Contains("LUI.UIElement.new") && f.Parameters.Count == 2)
+                if (fc2.Function.ToString().StartsWith("LUI.UI") && fc2.Function.ToString().EndsWith(".new") && f.Parameters.Count == 2)
                 {
-                    f.Parameters[0].Name = "HudRef";
-                    f.Parameters[1].Name = "InstanceRef";
+                    f.Parameters[0].Name = "menu";
+                    f.Parameters[1].Name = "controller";
                 }
                 else if (fc2.Function.ToString().Contains("CoD.Menu.NewForUIEditor") && f.Parameters.Count == 1)
                 {
-                    f.Parameters[0].Name = "InstanceRef";
+                    f.Parameters[0].Name = "controller";
                 }
             }
 
@@ -105,16 +101,16 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         {
                             if (arg is Closure c)
                             {
-                                c.Function.ArgumentNames = new List<Local>(){new Local(){Name = "ModelRef"}};
+                                c.Function.ArgumentNames = new List<Local>(){new Local(){Name = "modelRef"}};
                             }
                         }
                     }
 
-                    if (i is Assignment {Right: FunctionCall fc5} && fc5.Function.ToString().Contains("registerEventHandler"))
+                    if (i is Assignment {Right: FunctionCall fc5} && fc5.Function.ToString().EndsWith("registerEventHandler"))
                     {
-                        if (fc5.Arguments.Count == 3 && fc5.Arguments[2] is Closure c2)
+                        if (fc5.Arguments.Count >= 2 && fc5.Arguments[^1] is Closure c2)
                         {
-                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "Sender"}, new Local(){Name = "Event"}};
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}, new Local(){Name = "event"}};
                         }
                     }
                     
@@ -122,7 +118,15 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     {
                         if (fc6.Arguments.Count == 3 && fc6.Arguments[2] is Closure c2)
                         {
-                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "Sender"}};
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}};
+                        }
+                    }
+                    
+                    if (i is Assignment {Right: FunctionCall fc7} && fc7.Function.ToString().Contains("LUI.OverrideFunction_CallOriginalFirst"))
+                    {
+                        if (fc7.Arguments.Count == 3 && fc7.Arguments[2] is Closure c2)
+                        {
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}, new Local(){Name = "controller"}};
                         }
                     }
                 }
@@ -134,7 +138,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
             {
                 if (fc3.Function.ToString().Contains("Engine.GetModelValue") && f.Parameters.Count == 1)
                 {
-                    a4.Left[0].Identifier.Name = "ModelValue";
+                    a4.Left[0].Identifier.Name = "modelValue";
                 }
             }
             
@@ -175,7 +179,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                                     }
                                 } && il2.Expressions[1] is ListAssignment {Left: Constant {Type: ValueType.String, String: "condition"}, Right: Closure cl})
                             {
-                                cl.Function.ArgumentNames = new List<Local>() {new Local(){Name = "HudRef"}, new Local(){Name = "ItemRef"}, new Local(){Name = "UpdateTable"}};
+                                cl.Function.ArgumentNames = new List<Local>() {new Local(){Name = "menu"}, new Local(){Name = "element"}, new Local(){Name = "event"}};
                             }
                         }
                     }

@@ -32,6 +32,11 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.Havok
                     break;
                 case HavokConstantType.THash:
                     HashValue = ReadHash();
+                    if (Decompiler.HashEntries.ContainsKey(HashValue))
+                    {
+                        StringValue = Decompiler.HashEntries[HashValue];
+                        Type = HavokConstantType.TString;
+                    }
                     break;
                 case HavokConstantType.TNil:
                     break;

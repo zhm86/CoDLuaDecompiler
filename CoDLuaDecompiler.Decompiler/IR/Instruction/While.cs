@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CoDLuaDecompiler.Decompiler.CFG;
+using CoDLuaDecompiler.Decompiler.Extensions;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 
@@ -31,9 +32,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Instruction
                 ret = $@"while {Condition} do" + "\n";
             }
             
-            Function.IndentLevel += 1;
-            ret += Body.PrintBlock(indentLevel + 1, IsBlockInlined);
-            Function.IndentLevel -= 1;
+            ret += Body.PrintBlock(indentLevel, IsBlockInlined).AddIndent();
             ret += "\n";
             for (int i = 0; i < indentLevel; i++)
             {

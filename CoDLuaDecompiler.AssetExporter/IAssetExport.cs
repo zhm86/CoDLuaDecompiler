@@ -2,6 +2,6 @@
 {
     public interface IAssetExport
     {
-        void ExportAssets();
+        void ExportAssets(bool dumpRaw = false);
     }
 }

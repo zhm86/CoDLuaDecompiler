@@ -14,6 +14,7 @@
     <ItemGroup>
       <ProjectReference Include="..\CoDLuaDecompiler.AssetExporter\CoDLuaDecompiler.AssetExporter.csproj" />
       <ProjectReference Include="..\CoDLuaDecompiler.Decompiler\CoDLuaDecompiler.Decompiler.csproj" />
+      <ProjectReference Include="..\CoDLuaDecompiler.HashResolver\CoDLuaDecompiler.HashResolver.csproj" />
     </ItemGroup>
 
     <ItemGroup>

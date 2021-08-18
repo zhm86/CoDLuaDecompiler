@@ -30,5 +30,10 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         {
             return -1;
         }
+
+        public override string ToString()
+        {
+            return base.ToString().Replace("\n", "\n\t");
+        }
     }
 }

@@ -1,20 +1,27 @@
+using System.Collections.Generic;
+using System.IO;
 using CoDLuaDecompiler.Decompiler.Analyzers;
 using CoDLuaDecompiler.Decompiler.IR;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.LuaFile;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction;
+using CoDLuaDecompiler.HashResolver;
 
 namespace CoDLuaDecompiler.Decompiler
 {
     public class Decompiler : IDecompiler
     {
-        public static SymbolTable SymbolTable = new SymbolTable();
+        public static Dictionary<ulong, string> HashEntries;
+
+        public Decompiler(IPackageIndex packageIndex)
+        {
+            HashEntries = packageIndex.GetEntries();
+        }
 
         public Function GetDecompiledFile(ILuaFile luaFile)
         {
             Function.IdCounter = 0;
-            Function.IndentLevel = 0;
-            var function = new Function(SymbolTable);
+            var function = new Function(new SymbolTable());
             
             DecompileFunction(function, luaFile.MainFunction);
 
@@ -51,6 +58,13 @@ namespace CoDLuaDecompiler.Decompiler
             // Decompile all child functions
             for (int i = 0; i < luaFunction.ChildFunctions.Count; i++)
                 DecompileFunction(function.Closures[i], luaFunction.ChildFunctions[i]);
+            // File analysis on main function
+            if (function.Parent == null)
+            {
+                var fileAnalyzers = luaFunction.LuaFile.FileAnalyzerList.GetAnalyzers();
+                for (int i = 0; i < fileAnalyzers.Count; i++)
+                    fileAnalyzers[i].Analyze(function);
+            }
             // Close the scope of this function
             function.SymbolTable.EndScope();
         }

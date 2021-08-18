@@ -42,7 +42,10 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit
             {
                 var lo = Reader.ReadULEB128();
                 var hi = Reader.ReadULEB128();
-                return new LuaJitConstant((hi << 32) | lo);
+                var hash = ((hi << 32) | lo) & 0xFFFFFFFFFFFFFFF;
+                if (Decompiler.HashEntries.ContainsKey(hash))
+                    return new LuaJitConstant(Decompiler.HashEntries[hash]);
+                return new LuaJitConstant(hash);
             }
             Console.WriteLine("unknown TYPE " + type);
 
