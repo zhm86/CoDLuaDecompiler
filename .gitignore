@@ -44,3 +44,8 @@
 *.config
 .idea
 Properties/launchSettings.json
+
+#Package Index
+*.wni
+*.lua
+*.luac

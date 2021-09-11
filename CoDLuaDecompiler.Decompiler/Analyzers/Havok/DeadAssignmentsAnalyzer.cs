@@ -94,7 +94,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     var phiToRemove = new List<Identifier>();
                     foreach (var phi in b.PhiFunctions)
                     {
-                        if (usageCounts[phi.Value.Left] == 0)
+                        if (usageCounts.ContainsKey(phi.Value.Left) && usageCounts[phi.Value.Left] == 0)
                         {
                             changed = true;
                             phiToRemove.Add(phi.Value.Left);

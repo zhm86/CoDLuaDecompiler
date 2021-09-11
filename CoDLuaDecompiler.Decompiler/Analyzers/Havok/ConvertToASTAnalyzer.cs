@@ -74,7 +74,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         }*/
 
                         // Extract the step variable definition
-                        if (loopInitializer.Instructions[loopInitializer.Instructions.Count - 2] is Assignment incassn)
+                        if (loopInitializer.Instructions.Count > 2 && loopInitializer.Instructions[^2] is Assignment incassn)
                         {
                             nfor.Increment = incassn.Right;
                             if (incassn.IsLocalDeclaration)
@@ -85,7 +85,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         }
 
                         // Extract the limit variable definition
-                        if (loopInitializer.Instructions[loopInitializer.Instructions.Count - 2] is Assignment limitassn)
+                        if (loopInitializer.Instructions.Count > 2 && loopInitializer.Instructions[^2] is Assignment limitassn)
                         {
                             nfor.Limit = limitassn.Right;
                             if (limitassn.IsLocalDeclaration)
@@ -276,7 +276,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         // Remove gotos in latch
                         foreach (var pred in node.Predecessors)
                         {
-                            if (pred.IsLoopLatch && pred.Instructions.Last() is Jump lj && !lj.Conditional)
+                            if (pred.IsLoopLatch && pred.Instructions.Any() && pred.Instructions.Last() is Jump lj && !lj.Conditional)
                             {
                                 pred.Instructions.RemoveAt(pred.Instructions.Count - 1);
                             }

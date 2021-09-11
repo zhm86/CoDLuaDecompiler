@@ -155,11 +155,11 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                 for (int b = 0; b < f.Blocks.Count(); b++)
                 {
                     if (f.Blocks[b].Successors.Count() == 1 && f.Blocks[b].Successors[0].Predecessors.Count() == 1 &&
-                        (f.Blocks[b].Instructions.Last() is Jump || (b + 1 < f.Blocks.Count() && f.Blocks[b].Successors[0] == f.Blocks[b + 1])))
+                        (f.Blocks[b].Instructions.Any() && f.Blocks[b].Instructions.Last() is Jump || (b + 1 < f.Blocks.Count() && f.Blocks[b].Successors[0] == f.Blocks[b + 1])))
                     {
                         var curr = f.Blocks[b];
                         var succ = f.Blocks[b].Successors[0];
-                        if (f.Blocks[b].Instructions.Last() is Jump)
+                        if (f.Blocks[b].Instructions.Any() && f.Blocks[b].Instructions.Last() is Jump)
                         {
                             curr.Instructions.RemoveAt(curr.Instructions.Count() - 1);
                         }

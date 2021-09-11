@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
@@ -18,7 +19,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.LuaJit
                 while (changes)
                 {
                     changes = false;
-                    for(int i = 0; i < b.Instructions.Count; i++)
+                    for(int i = 0; i < b.Instructions.Count - 1; i++)
                     {
                         if (b.Instructions[i] is Assignment {Right: FunctionCall {IsIndeterminateArgumentCount: true} fc} && 
                             b.Instructions[i + 1] is Assignment {Right: FunctionCall fc2})
@@ -26,6 +27,19 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.LuaJit
                             changes = true;
                             fc2.Arguments.Add(fc);
                             b.Instructions.RemoveAt(i);
+                        }
+                        
+                        if (b.Instructions[i] is Assignment {Right: FunctionCall {IsIndeterminateArgumentCount: true} fc3} a && 
+                            b.Instructions[i + 1] is SetTableMultres stm)
+                        {
+                            changes = true;
+                            var newId = new IdentifierReference(stm.TableIdentifier);
+                            newId.TableIndices.Add(new Constant(stm.Index, -1));
+                            a.Left = new List<IdentifierReference>()
+                            {
+                                newId
+                            };
+                            b.Instructions.Remove(stm);
                         }
                     }
                     for(int i = 1; i < b.Instructions.Count; i++)

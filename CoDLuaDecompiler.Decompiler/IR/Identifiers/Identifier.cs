@@ -15,6 +15,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Identifiers
         public int PhiUseCount { get; set; } = 0;
         public bool UpValueResolved { get; set; } = false;
         public bool IsClosureBound { get; set; } = false;
+        public string UpvalueVarName { get; set; }
         
         public override string ToString()
         {

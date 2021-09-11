@@ -337,8 +337,29 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                             _symbolTable.GetRegister(i.A),
                             new IdentifierReference(up)));
                         break;
+                    case "USETV":
+                        instrs.Add(new Assignment(
+                            _symbolTable.GetUpValue(i.A, function.UpvalueBindings[(int) i.A].Name),
+                            new IdentifierReference(_symbolTable.GetRegister((uint) i.CD))));
+                        break;
+                    case "USETS":
+                        instrs.Add(new Assignment(
+                            _symbolTable.GetUpValue(i.A, function.UpvalueBindings[(int) i.A].Name),
+                            ConvertLuaJitConstant(luaFunction.Constants[(int) i.CD], (int) i.CD)));
+                        break;
+                    case "USETN":
+                        instrs.Add(new Assignment(
+                            _symbolTable.GetUpValue(i.A, function.UpvalueBindings[(int) i.A].Name),
+                            ConvertLuaJitConstant(GetNumConstant(luaFunction, (ulong) i.CD), -1)));
+                        break;
+                    case "USETP":
+                        instrs.Add(new Assignment(
+                            _symbolTable.GetUpValue(i.A, function.UpvalueBindings[(int) i.A].Name),
+                            GetPrimitiveConstant(i.CD)));
+                        break;
                     case "UCLO":
                         // This doesn't seem to do anything
+                        instrs.Add(new Data(i));
                         break;
                     case "FNEW":
                         instrs.Add(new Assignment(
@@ -403,6 +424,9 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         instrs.Add(new Assignment(
                             new IdentifierReference(_symbolTable.GetRegister(i.B), new Constant(i.CD, -1)),
                             new IdentifierReference(_symbolTable.GetRegister(i.A))));
+                        break;
+                    case "TSETM":
+                        instrs.Add(new SetTableMultres(_symbolTable.GetRegister(i.A - 1), (int) i.CD + 1));
                         break;
                     
                     // Calls and vararg handling. T = tail call
@@ -526,10 +550,10 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         jmp.PostTakenAssignment = pta;
                         instrs.Add(jmp);
                         break;
+                    case "LOOP":
                     case "ITERL":
                         instrs.Add(new Jump(function.GetLabel((uint) (pos + i.CD + 1))));
                         break;
-                    case "LOOP":
                     case "JMP":
                         instrs.Add(new Jump(function.GetLabel((uint) ((uint) pos + i.CD + 1))));
                         break;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
@@ -5,6 +6,7 @@ using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
+using ValueType = CoDLuaDecompiler.Decompiler.IR.Identifiers.ValueType;
 
 namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
 {
@@ -39,16 +41,23 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                 {
                     if (i is Assignment a)
                     {
-                        int ll = 0;
                         foreach (var l in a.Left)
                         {
-                            if (l is IdentifierReference ir && !ir.HasIndex && ir.Identifier.IdentifierType == IdentifierType.Register && !renamed.Contains(ir.Identifier))
+                            if (!l.HasIndex && l.Identifier.IdentifierType == IdentifierType.Register && !renamed.Contains(l.Identifier))
                             {
                                 renamed.Add(l.Identifier);
-                                ir.Identifier.Name = $@"f{f.Id}_local{localCounter}";
+                                l.Identifier.Name = $@"f{f.Id}_local{localCounter}";
                                 localCounter++;
                             }
-                            ll++;
+
+                            if (!l.HasIndex &&
+                                l.Identifier.IdentifierType == IdentifierType.Upvalue &&
+                                !renamed.Contains(l.Identifier) &&
+                                !String.IsNullOrEmpty(l.Identifier.UpvalueVarName))
+                            {
+                                renamed.Add(l.Identifier);
+                                l.Identifier.Name = l.Identifier.UpvalueVarName;
+                            }
                         }
                     }
                 }

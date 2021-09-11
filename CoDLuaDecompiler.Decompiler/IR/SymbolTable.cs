@@ -65,7 +65,7 @@ namespace CoDLuaDecompiler.Decompiler.IR
             return id;
         }
         
-        public Identifier GetUpValue(uint upValue)
+        public Identifier GetUpValue(uint upValue, string varName = "")
         {
             if (!ScopeStack.Peek().ContainsKey($@"UPVAL{upValue}"))
             {
@@ -75,6 +75,8 @@ namespace CoDLuaDecompiler.Decompiler.IR
                     ValueType = ValueType.Unknown,
                     Name = $@"UPVAL{upValue}"
                 };
+                if (!String.IsNullOrEmpty(varName))
+                    id.UpvalueVarName = varName;
                 ScopeStack.Peek().Add(id.Name, id);
             }
             return ScopeStack.Peek()[$@"UPVAL{upValue}"];

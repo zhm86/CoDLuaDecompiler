@@ -108,7 +108,7 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         break;
                     case LuaHavokOpCode.HKS_OPCODE_SETUPVAL:
                     case LuaHavokOpCode.HKS_OPCODE_SETUPVAL_R1:
-                        up = _symbolTable.GetUpValue(i.B);
+                        up = _symbolTable.GetUpValue(i.B, function.UpvalueBindings[(int) i.B].Name);
                         if (luaFunction.Upvalues.Any() && !up.UpValueResolved)
                         {
                             up.Name = luaFunction.Upvalues[(int) i.B].Name;

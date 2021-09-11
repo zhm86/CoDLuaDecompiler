@@ -26,9 +26,7 @@ namespace CoDLuaDecompiler.AssetExporter.Games
         private struct LuaFile
         {
             public long Hash { get; set; }
-            public ulong NullPointer { get; set; }
             public Int32 DataSize { get; set; }
-            public Int32 UnknownHash1 { get; set; }
             public long StartLocation { get; set; }
         }
 

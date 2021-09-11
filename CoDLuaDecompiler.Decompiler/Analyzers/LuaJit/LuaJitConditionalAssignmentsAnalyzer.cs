@@ -27,7 +27,9 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.LuaJit
                     }
                     
                     f.Instructions[i] = new Assignment(ir1, j1.Condition);
-                    f.Instructions.RemoveRange(i + 1, 5);
+                    if (f.Instructions[i + 5] is Jump j && j.Dest.UsageCount == 1)
+                        f.Instructions.Remove(j);
+                    f.Instructions.RemoveRange(i + 1, 4);
                 }
             }
         }
