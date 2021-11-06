@@ -48,7 +48,11 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         if (ir == null || type == BinOperationType.None || !(a.Left[0].Identifier == ir.Identifier && a2.Left[0].Identifier == ir.Identifier))
                             return;
                         
-                        f.Instructions.Insert(f.Instructions.IndexOf(j.Dest), new Assignment(ir.Identifier, new BinOp(new IdentifierReference(a.Left[0].Identifier), a2.Right, type)));
+                        f.Instructions.Insert(f.Instructions.IndexOf(j.Dest), new Assignment(ir.Identifier, new BinOp(new IdentifierReference(a.Left[0].Identifier), a2.Right, type))
+                        {
+                            LocalAssignments = a2.LocalAssignments,
+                            LineLocation = a2.LineLocation
+                        });
 
                         if (l.UsageCount > 1)
                             l.UsageCount--;

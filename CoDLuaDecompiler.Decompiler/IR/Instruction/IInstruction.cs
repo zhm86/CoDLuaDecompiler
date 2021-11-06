@@ -15,6 +15,8 @@ namespace CoDLuaDecompiler.Decompiler.IR.Instruction
         /// </summary>
         public int OpLocation { get; set; }
 
+        public int LineLocation { get; set; }
+
         /// <summary>
         /// The instruction index in a basic block before propogation is done
         /// </summary>

@@ -70,6 +70,8 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         {
             // If it's a string constant, we need it without the "'s and with other values we need a casket
             string left;
+            if (Left is Constant {Type: ValueType.VarArgs})
+                return Right.ToString();
             if (Left is Constant c && c.String != null)
                 left = Left.ToString()?.Replace("\"", "");
             else

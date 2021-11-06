@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CoDLuaDecompiler.Decompiler.Analyzers.Havok;
 using CoDLuaDecompiler.Decompiler.Analyzers.LuaJit;
+using CoDLuaDecompiler.Decompiler.Analyzers.Shared;
 
 namespace CoDLuaDecompiler.Decompiler.Analyzers
 {
@@ -45,6 +46,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
                 new DeadAssignmentsAnalyzer(),
                 new ExpressionPropagationAnalyzer(),
                 new LivenessNoInterferenceAnalyzer(),
+                new MultipleReturnsOrderAnalyzer(),
 
                 // Convert out of SSA and rename variables
                 new SSADropSubscriptsAnalyzer(),

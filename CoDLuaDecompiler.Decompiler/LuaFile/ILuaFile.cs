@@ -10,6 +10,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
 {
     public interface ILuaFile
     {
+        public int FunctionIdCounter { get; set; }
         IFileHeader Header { get; }
         IList<IHavokLuaConstant> Constants { get; }
         ILuaFunction MainFunction { get; }

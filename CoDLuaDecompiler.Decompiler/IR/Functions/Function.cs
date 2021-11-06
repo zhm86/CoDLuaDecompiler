@@ -5,13 +5,13 @@ using CoDLuaDecompiler.Decompiler.CFG;
 using CoDLuaDecompiler.Decompiler.Extensions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
+using CoDLuaDecompiler.Decompiler.LuaFile.Havok.Debug;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
 
 namespace CoDLuaDecompiler.Decompiler.IR.Functions
 {
     public class Function
     {
-        public static int IdCounter = 0;
         public int Id { get; set; }
         public SymbolTable SymbolTable { get; set; }
         public List<Identifier> Parameters { get; set; }
@@ -51,9 +51,10 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
         /// </summary>
         public List<Identifier> UpvalueBindings = new List<Identifier>();
 
+        public FunctionDebugInfo FunctionDebugInfo { get; set; }
+
         public Function(SymbolTable symbolTable)
         {
-            Id = IdCounter++;
             SymbolTable = symbolTable;
             Parameters = new List<Identifier>();
             Closures = new List<Function>();
@@ -231,6 +232,29 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                 str.Append(")\n");
             }
 
+#if DEBUG
+            if (FunctionDebugInfo != null)
+            {
+                str.Append($"--[[ Func length: {FunctionDebugInfo.FunctionStart} - {FunctionDebugInfo.FunctionEnd}]]");
+                var debugStr = "--[[vars: ";
+                foreach (var variableData in FunctionDebugInfo.VariableNames)
+                {
+                    debugStr += $"{variableData.Name}: {variableData.Start} - {variableData.End}";
+                }
+
+                debugStr += "]]";
+                str.Append(debugStr);
+                var debugUpvalStr = "--[[upvals: ";
+                foreach (var variableData in FunctionDebugInfo.UpvalueNames)
+                {
+                    debugUpvalStr += $"{variableData}";
+                }
+
+                debugUpvalStr += "]]";
+                str.Append(debugUpvalStr);
+            }
+#endif
+
             if (IsAST)
             {
                 var block = StartBlock.PrintBlock(IndentLevel);
@@ -270,7 +294,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
                 for(int n = 0; n < Instructions.Count; n++)
                 {
                     var inst = Instructions[n];
-                    str.Append($@"{n}-{inst.OpLocation:D3} ");
+                    str.Append($@"{n}-{inst.OpLocation:D3}-{inst.LineLocation:D4} ");
                     str.Append(inst + "\n");
                 }
             }

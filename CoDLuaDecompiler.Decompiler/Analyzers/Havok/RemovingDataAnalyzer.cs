@@ -9,8 +9,16 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
         {
             for (int i = f.Instructions.Count - 1; i > 0; i--)
             {
-                if (f.Instructions[i] is Data)
+                if (f.Instructions[i] is Data d1)
                 {
+                    if (f.Instructions[i - 1] is Data d2)
+                    {
+                        d2.Locals = d1.Locals;
+                    }
+                    else if (f.Instructions[i - 1] is Assignment a)
+                    {
+                        a.LocalAssignments = d1.Locals;
+                    }
                     f.Instructions.RemoveAt(i);
                     i++;
                 }

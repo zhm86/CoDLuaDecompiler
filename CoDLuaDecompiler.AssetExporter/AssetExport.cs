@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -115,7 +115,7 @@ namespace CoDLuaDecompiler.AssetExporter
                     }
                 }
                 
-                var luaFile = LuaFileFactory.Create(file.Reader);
+                var luaFile = LuaFileFactory.Create(file.Reader, null);
                 try
                 {
                     if (String.IsNullOrEmpty(hash))

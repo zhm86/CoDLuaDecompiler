@@ -13,6 +13,7 @@ namespace CoDLuaDecompiler.CLI
     {
         private readonly IAssetExport _assetExport;
         private readonly IDecompiler _decompiler;
+        public static bool UsesDebugInfo = false;
 
         public Program(IDecompiler decompiler, IAssetExport assetExport)
         {
@@ -25,7 +26,7 @@ namespace CoDLuaDecompiler.CLI
             try
             {
                 // parse lua file
-                var file = LuaFileFactory.Create(filePath);
+                var file = LuaFileFactory.Create(filePath, UsesDebugInfo);
 
                 // decompile file
                 var output = _decompiler.Decompile(file);
@@ -47,6 +48,13 @@ namespace CoDLuaDecompiler.CLI
         {
             var files = new List<string>();
 
+            string luaExtension = "*.lua*";
+            if (args.Contains("--debug"))
+            {
+                UsesDebugInfo = true;
+                luaExtension = "*.luac";
+            }
+
             foreach (var arg in args)
             {
                 if (!File.Exists(arg) && !Directory.Exists(arg))
@@ -57,7 +65,7 @@ namespace CoDLuaDecompiler.CLI
                 // if so only includes file that are of ".lua" or ".luac" extension
                 if (attr.HasFlag(FileAttributes.Directory))
                 {
-                    files.AddRange(Directory.GetFiles(arg, "*.lua*", SearchOption.AllDirectories).ToList());
+                    files.AddRange(Directory.GetFiles(arg, luaExtension, SearchOption.AllDirectories).ToList());
                 }
                 else if (Path.GetExtension(arg).Contains(".lua"))
                 {

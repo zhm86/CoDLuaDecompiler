@@ -11,6 +11,8 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Shared
     {
         public void Analyze(Function f)
         {
+            if (f.FunctionDebugInfo != null)
+                return;
             // Get the widget.new function
             Function createWidgetFunction = null;
             foreach (var b in f.Blocks)
@@ -75,12 +77,12 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Shared
                     {
                         if (fc.Function.ToString().EndsWith("subscribeToGlobalModel") && fc.Arguments.Count >= 4 && fc.Arguments[^2] is Constant co && co.Type == ValueType.String)
                         {
-                            a2.Left[0].Identifier.Name = ToCamelCase(co.String);
+                            a2.Left[0].Identifier.Name = ToCamelCase(co.String.Replace(".", "_"));
                         }
                         
                         if (fc.Function.ToString().EndsWith("linkToElementModel") && fc.Arguments.Count >= 4 && fc.Arguments[^3] is Constant co2 && co2.Type == ValueType.String)
                         {
-                            a2.Left[0].Identifier.Name = ToCamelCase(co2.String);
+                            a2.Left[0].Identifier.Name = ToCamelCase(co2.String.Replace(".", "_"));
                         }
                     }
                 }

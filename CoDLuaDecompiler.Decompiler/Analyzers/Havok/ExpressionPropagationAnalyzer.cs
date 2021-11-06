@@ -201,7 +201,8 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         {
                             if (use.DefiningInstruction != null &&
                                 use.DefiningInstruction is Assignment a &&
-                                (a.Left.Count() == 1 || a.Left.Count > 1 && a.Right is Constant {Type: ValueType.Nil}) && !(a.Right is IdentifierReference {HasIndex: false} ir && ir.GetUses(true).Count > 1) &&
+                                (a.LocalAssignments == null || a.LocalAssignments.Count == 0) &&
+                                (a.Left.Count() == 1 || a.Left.Count > 1 && a.Right is Constant {Type: ValueType.Nil or ValueType.Boolean}) && !(a.Right is IdentifierReference {HasIndex: false} ir && ir.GetUses(true).Count > 1) &&
                                 ((use.UseCount == 1 && ((i - 1 >= 0 && b.Instructions[i - 1] == use.DefiningInstruction) || (inst is Assignment a2 && a2.IsListAssignment)) && !definitelyLocal.Contains(use)) || a.PropagateAlways) &&
                                 !a.Left[0].Identifier.IsClosureBound)
                             {
@@ -335,7 +336,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     {
                         if (expression is FunctionCall {Function: IdentifierReference ir} fc && ir.TableIndices.Count >= 1 && 
                             ir.TableIndices[^1] is Constant {Type: ValueType.String} && fc.Arguments.Any() && 
-                            fc.Arguments[0] is IdentifierReference {HasIndex: false} argIr && 
+                            fc.Arguments[0] is IdentifierReference {HasIndex: false} argIr && !fc.IsFunctionCalledOnSelf &&
                             (ir == argIr || ir.HasIndex && ir.Identifier == argIr.Identifier))
                         {
                             fc.Arguments.RemoveAt(0);

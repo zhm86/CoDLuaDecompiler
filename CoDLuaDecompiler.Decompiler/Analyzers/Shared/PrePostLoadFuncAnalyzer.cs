@@ -11,6 +11,9 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Shared
     {
         public void Analyze(Function f)
         {
+            if (f.FunctionDebugInfo != null)
+                return;
+            
             // Get the widget.new function
             Function createWidgetFunction = null;
             foreach (var b in f.Blocks)

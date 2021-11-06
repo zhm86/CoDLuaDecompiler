@@ -37,6 +37,10 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                                     {
                                         il.Expressions.Add(new ListAssignment(a2.Left[0].TableIndices[0], a2.Right));
                                     }
+                                    if (a2.LocalAssignments != null)
+                                    {
+                                        a.LocalAssignments.AddRange(a2.LocalAssignments);
+                                    }
                                     a2.Left[0].Identifier.UseCount--;
                                     b.Instructions.RemoveAt(i + 1);
                                     initIndex++;

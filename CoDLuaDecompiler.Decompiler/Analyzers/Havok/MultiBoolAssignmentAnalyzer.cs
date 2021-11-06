@@ -18,6 +18,10 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     a2.Right is Constant {Type: ValueType.Nil})
                 {
                     a1.Left.AddRange(a2.Left);
+                    if (a1.LocalAssignments == null)
+                        a1.LocalAssignments = a2.LocalAssignments;
+                    else
+                        a1.LocalAssignments.AddRange(a2.LocalAssignments);
                     f.Instructions.RemoveAt(i + 1);
                 }
             }

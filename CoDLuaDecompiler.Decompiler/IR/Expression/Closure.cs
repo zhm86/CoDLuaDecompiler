@@ -22,7 +22,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         {
             for (int i = 0; i < Function.UpvalueBindings.Count; i++)
             {
-                if (Function.UpvalueBindings[i] == orig)
+                if (Function.UpvalueBindings[i].Name == orig.Name)
                 {
                     Function.UpvalueBindings[i] = newId;
                     newId.IsClosureBound = true;

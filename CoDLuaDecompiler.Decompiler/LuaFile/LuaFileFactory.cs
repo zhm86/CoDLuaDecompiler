@@ -7,7 +7,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
 {
     public static class LuaFileFactory
     {
-        public static ILuaFile Create(BinaryReader reader)
+        public static ILuaFile Create(BinaryReader reader, string filePath, bool useDebugInfo = false)
         {
             reader.BaseStream.Seek(0, SeekOrigin.Begin);
             var bytes = reader.ReadBytes(13);
@@ -37,9 +37,18 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
             if (bytes[12] == 0x03)
                 return new HavokLuaFileIW(reader);
 
-            return new HavokLuaFileT7(reader);
+            if (useDebugInfo)
+            {
+                var debugFile = Path.ChangeExtension(filePath, ".lua");
+                using var stream = File.OpenRead(debugFile);
+                using var debugReader = new BinaryReader(stream);
+                return new HavokLuaFileT7(reader, debugReader);
+            }
+            else
+                return new HavokLuaFileT7(reader);
         }
-        public static ILuaFile Create(string filePath)
+
+        public static ILuaFile Create(string filePath, bool usesDebugInfo = false)
         {
             if (!File.Exists(filePath))
             {
@@ -49,7 +58,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
             using var stream = File.OpenRead(filePath);
             using var reader = new BinaryReader(stream);
 
-            return Create(reader);
+            return Create(reader, filePath, usesDebugInfo);
         }
     }
 }

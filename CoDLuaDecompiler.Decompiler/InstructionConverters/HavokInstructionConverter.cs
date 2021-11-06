@@ -7,6 +7,8 @@ using CoDLuaDecompiler.Decompiler.IR.Expression.Operator;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
+using CoDLuaDecompiler.Decompiler.LuaFile.Havok;
+using CoDLuaDecompiler.Decompiler.LuaFile.Havok.Debug;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.Havok;
@@ -65,7 +67,16 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
         {
             _symbolTable = function.SymbolTable;
             var luaFunction = (HavokLuaFunction) luaFunc;
-            
+
+            FunctionDebugInfo debugFunc = null;
+            if (luaFunction.LuaFile is HavokLuaFileT7 ht7 && ht7.DebugFile != null)
+            {
+                var debugInfo = ht7.DebugFile.DebugInfo;
+                debugFunc = debugInfo.Find(d => d.Id == function.Id);
+                function.FunctionDebugInfo = debugFunc;
+                function.ArgumentNames = debugFunc.VariableNames.Where(v => v.Start == 0).Select(l => new Local() { Name = l.Name, End = l.End, Start = l.Start}).ToList();
+            }
+
             // Loop over all instructions
             for (int pos = 0; pos < luaFunction.Instructions.Count; pos++)
             {
@@ -424,6 +435,52 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         var pta = new Assignment(_symbolTable.GetRegister(i.A + 3), RegisterReference(i.A));
                         pta.PropagateAlways = true;
                         jmp.PostTakenAssignment = pta;
+
+                        if (debugFunc != null)
+                        {
+                            var indexVariable = debugFunc.VariableNames.Where(v => v.Start == pos + 1 + i.SBx).ToList();
+                            if (indexVariable.Count == 1)
+                            {
+                                var forIndexIdentifier = _symbolTable.GetRegister(i.A);
+                                for (int j = pos + i.SBx; j >= 0; j--)
+                                {
+                                    var opCodeInstrs = function.Instructions.Where(ins => ins.OpLocation == j).ToList();
+                                    if (opCodeInstrs.Count == 1 && opCodeInstrs[0] is Assignment a && a.Left.Count == 1 && a.Left[0].Identifier == forIndexIdentifier)
+                                    {
+                                        a.LocalAssignments = indexVariable;
+                                        break;
+                                    }
+                                }
+                                var forStepIdentifier = _symbolTable.GetRegister(i.A + 2);
+                                for (int j = pos + i.SBx; j >= 0; j--)
+                                {
+                                    var opCodeInstrs = function.Instructions.Where(ins => ins.OpLocation == j).ToList();
+                                    if (opCodeInstrs.Count == 1 && opCodeInstrs[0] is Assignment a && a.Left.Count == 1 && a.Left[0].Identifier == forStepIdentifier && a.LocalAssignments.Count == 3)
+                                    {
+                                        var forLimitIdentifier = _symbolTable.GetRegister(i.A + 1);
+                                        for (int k = pos + i.SBx; k >= 0; k--)
+                                        {
+                                            var opLimitCodeInstrs = function.Instructions.Where(ins => ins.OpLocation == k).ToList();
+                                            if (opLimitCodeInstrs.Count == 1 && opLimitCodeInstrs[0] is Assignment a2 && a2.Left.Count == 1 && a2.Left[0].Identifier == forLimitIdentifier)
+                                            {
+                                                a2.LocalAssignments = new List<Local>()
+                                                {
+                                                    a.LocalAssignments[1]
+                                                };
+                                                break;
+                                            }
+                                        }
+                                        a.LocalAssignments = new List<Local>()
+                                        {
+                                            a.LocalAssignments[2]
+                                        };
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        
                         instrs.Add(jmp);
                         break;
                     case LuaHavokOpCode.HKS_OPCODE_TFORLOOP:
@@ -445,6 +502,17 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         var fCall = new FunctionCall(new IdentifierReference(_symbolTable.GetRegister(i.A)), args);
                         fCall.IsIndeterminateReturnCount = (i.C == 0);
                         assn = new Assignment(rets, fCall);
+                        
+                        if (debugFunc != null)
+                        {
+                            var nextOp = ((HavokInstruction) luaFunction.Instructions[pos + 1]);
+                            if (nextOp.HavokOpCode == LuaHavokOpCode.HKS_OPCODE_JMP)
+                            {
+                                assn.LocalAssignments = debugFunc.VariableNames
+                                    .Where(v => v.Start == pos + nextOp.SBx + 2).ToList();
+                            }
+                        }
+                        
                         instrs.Add(assn);
                         instrs.Add(new Jump(function.GetLabel((uint)(pos + 2)), new BinOp(RegisterReference(i.A + 3), new Constant(ValueType.Nil, -1), BinOperationType.OpEqual)));
                         instrs.Add(new Assignment(_symbolTable.GetRegister(i.A + 2), new IdentifierReference(_symbolTable.GetRegister(i.A + 3))));
@@ -507,6 +575,13 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                                 continue;
                             }
 
+                            if (debugFunc != null && function.Instructions.Any() && function.Instructions.Last() is Assignment a && a.Right is Closure)
+                            {
+                                if (a.LocalAssignments == null)
+                                    a.LocalAssignments = new List<Local>();
+                                a.LocalAssignments.AddRange(debugFunc.VariableNames.Where(v => v.Start == pos + 1).ToList());
+                            }
+
                             if (i.A == 1)
                             {
                                 closureFunc.UpvalueBindings.Add(_symbolTable.GetRegister(i.C));
@@ -518,7 +593,12 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         }
                         else
                         {
-                            instrs.Add(new Data(i));
+                            var dat = new Data(i);
+                            if (debugFunc != null)
+                            {
+                                dat.Locals = debugFunc.VariableNames.Where(v => v.Start == pos + 1).ToList();
+                            }
+                            instrs.Add(dat);
                         }
                         break;
                     case LuaHavokOpCode.HKS_OPCODE_SETFIELD:
@@ -555,11 +635,20 @@ namespace CoDLuaDecompiler.Decompiler.InstructionConverters
                         instrs.Add(new PlaceholderInstruction($@"{i.HavokOpCode} {i.A} {i.B} {i.C}"));
                         break;
                 }
-                instrs.ForEach(instr =>
+
+                foreach (var instr in instrs)
                 {
+                    if (debugFunc != null)
+                    {
+                        if (instr is Assignment a && a.LocalAssignments == null)
+                            a.LocalAssignments = debugFunc.VariableNames.Where(v => v.Start == pos + 1).ToList();
+                        if (debugFunc.InstructionLocations.Count >= pos)
+                            instr.LineLocation = debugFunc.InstructionLocations[pos];
+                    }
+
                     instr.OpLocation = pos;
                     function.Instructions.Add(instr);
-                });
+                }
             }
         }
     }

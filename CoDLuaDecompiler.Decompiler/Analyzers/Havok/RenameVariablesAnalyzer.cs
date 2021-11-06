@@ -5,6 +5,7 @@ using CoDLuaDecompiler.Decompiler.IR.Expression;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
+using CoDLuaDecompiler.Decompiler.LuaFile.Havok.Debug;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
 using ValueType = CoDLuaDecompiler.Decompiler.IR.Identifiers.ValueType;
 
@@ -41,14 +42,23 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                 {
                     if (i is Assignment a)
                     {
+                        int ll = 0;
                         foreach (var l in a.Left)
                         {
                             if (!l.HasIndex && l.Identifier.IdentifierType == IdentifierType.Register && !renamed.Contains(l.Identifier))
                             {
                                 renamed.Add(l.Identifier);
-                                l.Identifier.Name = $@"f{f.Id}_local{localCounter}";
-                                localCounter++;
+                                if (a.LocalAssignments != null && ll < a.LocalAssignments.Count)
+                                {
+                                    l.Identifier.Name = a.LocalAssignments[ll].Name;
+                                }
+                                else
+                                {
+                                    l.Identifier.Name = $@"f{f.Id}_local{localCounter}";
+                                    localCounter++;
+                                }
                             }
+                            ll++;
 
                             if (!l.HasIndex &&
                                 l.Identifier.IdentifierType == IdentifierType.Upvalue &&
@@ -62,6 +72,9 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     }
                 }
             }
+            
+            if (f.FunctionDebugInfo != null)
+                return;
 
             // Adding special variable names for LUI widgets
             foreach (var b in f.Blocks)

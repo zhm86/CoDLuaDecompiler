@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CoDLuaDecompiler.Decompiler.IR.Expression;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
+using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
 
 namespace CoDLuaDecompiler.Decompiler.IR.Instruction
 {
@@ -14,6 +15,8 @@ namespace CoDLuaDecompiler.Decompiler.IR.Instruction
         /// The expression after the = or in
         /// </summary>
         public IExpression Right { get; set; }
+
+        public List<Local> LocalAssignments { get; set; }
         /// <summary>
         /// Is the first assignment of a local variable, and thus starts with "local"
         /// </summary>
@@ -197,6 +200,20 @@ namespace CoDLuaDecompiler.Decompiler.IR.Instruction
             {
                 str = Right.ToString();
             }
+
+#if DEBUG
+            if (LocalAssignments != null)
+            {
+                var locals = "";
+                foreach (var assignment in LocalAssignments)
+                {
+                    locals += assignment.Name + ", ";
+                }
+                if (LocalAssignments.Count > 0)
+                    str += $" --[[ {locals}]]";
+            }
+            str += $" --[[ @ {LineLocation}]]";
+#endif
 
             return str;
         }

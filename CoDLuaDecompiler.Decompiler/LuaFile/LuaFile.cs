@@ -11,6 +11,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
 {
     public abstract class LuaFile : ILuaFile
     {
+        public int FunctionIdCounter { get; set; } = 0;
         public IFileHeader Header { get; private set; }
         public IList<IHavokLuaConstant> Constants { get; private set; }
         public ILuaFunction MainFunction { get; private set; }

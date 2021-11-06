@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
+using CoDLuaDecompiler.Decompiler.IR.Instruction;
 
 namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
 {
@@ -47,6 +48,8 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                 counter++;
                 newName.IdentifierType = IdentifierType.Register;
                 newName.OriginalIdentifier = orig;
+                newName.UpvalueVarName = orig.UpvalueVarName;
+                newName.UpValueResolved = orig.UpValueResolved;
                 return newName;
             }
 
@@ -89,7 +92,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         }
                         foreach (var def in instruction.GetDefines(true))
                         {
-                            /*if (instruction is Assignment a && a.LocalAssignments != null && !reassigned)
+                            if (instruction is Assignment a && a.LocalAssignments != null && a.LocalAssignments.Count != 0 && !reassigned && !def.IsClosureBound)
                             {
                                 var newname = NewName(def);
                                 instruction.RenameDefines(def, newname);
@@ -106,7 +109,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                                 changed = true;
                                 reassigned = true;
                             }
-                            else*/ if (newreplacements.ContainsKey(def))
+                            else if (newreplacements.ContainsKey(def))
                             {
                                 instruction.RenameDefines(def, newreplacements[def]);
                                 changed = true;

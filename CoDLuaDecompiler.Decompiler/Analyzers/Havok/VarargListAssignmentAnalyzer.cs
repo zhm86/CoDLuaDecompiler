@@ -8,17 +8,21 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
 {
     public class VarargListAssignmentAnalyzer : IAnalyzer
     {
+        // Adds the vararg to a table
         public void Analyze(Function f)
         {
-            // Pretty hacky way to do this, don't know another way to add it if the table already has items
             for (int i = 0; i < f.Instructions.Count - 1; i++)
             {
-                if (f.Instructions[i] is Assignment {IsIndeterminateVararg: true} && f.Instructions[i + 1] is Assignment
+                if (f.Instructions[i] is Assignment {IsIndeterminateVararg: true} a1 && f.Instructions[i + 1] is Assignment
                 {
                     IsIndeterminateVararg: true
                 } a3)
                 {
-                    f.Instructions[i] = new Assignment(new List<IdentifierReference>(), new FunctionCall(new IdentifierReference(new Identifier() {Name = "table.insert", IdentifierType = IdentifierType.Global}), new List<IExpression>(){new IdentifierReference(f.SymbolTable.GetRegister(a3.VarargAssignmentReg)), new IdentifierReference(f.SymbolTable.GetVarargs())}));
+                    var idRef = new IdentifierReference(a3.Left[0].Identifier);
+                    idRef.TableIndices.Add(new Constant(ValueType.VarArgs, -1));
+                    var assn = new Assignment(idRef, new IdentifierReference(f.SymbolTable.GetVarargs()));
+                    assn.LocalAssignments = a3.LocalAssignments;
+                    f.Instructions[i] = assn;
                     f.Instructions.RemoveAt(i + 1);
                 }
             }

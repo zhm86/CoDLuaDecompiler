@@ -20,7 +20,6 @@ namespace CoDLuaDecompiler.Decompiler
 
         public Function GetDecompiledFile(ILuaFile luaFile)
         {
-            Function.IdCounter = 0;
             var function = new Function(new SymbolTable());
             
             DecompileFunction(function, luaFile.MainFunction);
@@ -36,6 +35,7 @@ namespace CoDLuaDecompiler.Decompiler
 
         public void DecompileFunction(Function function, ILuaFunction luaFunction)
         {
+            function.Id = luaFunction.LuaFile.FunctionIdCounter++;
             // First register closures for all the children
             for (uint i = 0; i < luaFunction.ChildFunctions.Count; i++)
             {
@@ -59,7 +59,7 @@ namespace CoDLuaDecompiler.Decompiler
             for (int i = 0; i < luaFunction.ChildFunctions.Count; i++)
                 DecompileFunction(function.Closures[i], luaFunction.ChildFunctions[i]);
             // File analysis on main function
-            if (function.Parent == null)
+            if (function.Parent == null && function.IsAST)
             {
                 var fileAnalyzers = luaFunction.LuaFile.FileAnalyzerList.GetAnalyzers();
                 for (int i = 0; i < fileAnalyzers.Count; i++)
