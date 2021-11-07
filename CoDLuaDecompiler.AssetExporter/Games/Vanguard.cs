@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
 using Formatting = System.Xml.Formatting;
 
 namespace CoDLuaDecompiler.AssetExporter.Games
