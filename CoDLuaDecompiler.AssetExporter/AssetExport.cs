@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -31,6 +31,7 @@ namespace CoDLuaDecompiler.AssetExporter
             { "BlackOps4",      new Tuple<IGame, bool>(new BlackOps4(),    true) },
             { "BlackOpsColdWar",      new Tuple<IGame, bool>(new BlackOpsColdWar(),    true) },
             { "ModernWarfare",      new Tuple<IGame, bool>(new ModernWarfare(),    true) },
+            { "Vanguard",      new Tuple<IGame, bool>(new Vanguard(),    true) },
         };
         
         public void ExportAssets(bool dumpRaw = false)
