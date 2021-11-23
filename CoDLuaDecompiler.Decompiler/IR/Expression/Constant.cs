@@ -1,9 +1,12 @@
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
+using System.Text;
 
 namespace CoDLuaDecompiler.Decompiler.IR.Expression
 {
     public class Constant : IExpression
     {
+        private static readonly StringBuilder constStringBuilder = new StringBuilder();
+
         public ValueType Type { get; set; }
         public double Number { get; set; }
         public string String { get; set; }
@@ -22,7 +25,23 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         public Constant(string str, int id)
         {
             Type = ValueType.String;
-            String = str.Replace("\n", "\\n");
+            for (int i = 0; i != str.Length; i++)
+            {
+                constStringBuilder.Append(str[i] switch
+                {
+                    '\0' => "\\0",
+                    '\a' => "\\a",
+                    '\t' => "\\t",
+                    '\n' => "\\n",
+                    '\v' => "\\v",
+                    '\r' => "\\r",
+                    '\\' => "\\\\",
+                    '"' => "\\\"",
+                    _ => str[i],
+                });
+            }
+            String = constStringBuilder.ToString();
+            constStringBuilder.Length = 0;
             Id = id;
         }
 
