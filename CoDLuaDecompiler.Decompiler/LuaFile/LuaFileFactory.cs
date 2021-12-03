@@ -31,7 +31,7 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile
                 throw new NotImplementedException("5.0 lua isn't implemented");
             
             // Check compiler version
-            if(bytes[5] == 0x0D)
+            if(bytes[5] == 0x0D && bytes[12] == 0x00)
                 return new HavokLuaFileT6(reader);
 
             if (bytes[12] == 0x03)
