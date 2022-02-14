@@ -191,8 +191,8 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit
 
         protected virtual double ReadNumber()
         {
-            var lo = Reader.ReadULEB128();
             var hi = Reader.ReadULEB128();
+            var lo = Reader.ReadULEB128();
 
             return AssembleNumber(lo, hi);
         }

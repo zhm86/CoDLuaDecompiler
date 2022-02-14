@@ -77,6 +77,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                 return;
 
             // Adding special variable names for LUI widgets
+            bool selfRenamed = false;
             foreach (var b in f.Blocks)
             {
                 foreach (var i in b.Instructions)
@@ -87,6 +88,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         if (fc.Function.ToString().StartsWith("LUI.UI") && fc.Function.ToString().EndsWith(".new") || fc.Function.ToString().Contains("CoD.Menu.NewForUIEditor"))
                         {
                             name = "self";
+                            selfRenamed = true;
                         }
                         else 
                             continue;
@@ -95,7 +97,11 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                             ir.Identifier.Name = name;
                         }
                     }
+                    if (selfRenamed)
+                        break;
                 }
+                if (selfRenamed)
+                    break;
             }
 
             // Change parameter names for menus and widgets

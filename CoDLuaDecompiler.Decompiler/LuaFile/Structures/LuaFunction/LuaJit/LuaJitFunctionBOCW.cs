@@ -40,8 +40,8 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit
             if (type == 3) Console.WriteLine("TYPE 3");
             if (type == 4)
             {
-                var lo = Reader.ReadULEB128();
                 var hi = Reader.ReadULEB128();
+                var lo = Reader.ReadULEB128();
                 var hash = ((hi << 32) | lo) & 0xFFFFFFFFFFFFFFF;
                 if (Decompiler.HashEntries.ContainsKey(hash))
                     return new LuaJitConstant(Decompiler.HashEntries[hash]);
@@ -60,9 +60,12 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.LuaJit
                 return new LuaJitConstant(Encoding.UTF8.GetString(Reader.ReadBytes((int) (type - 6))));
             if (type == 5)
             {
-                var lo = Reader.ReadULEB128();
                 var hi = Reader.ReadULEB128();
-                return new LuaJitConstant((hi << 32) | lo);
+                var lo = Reader.ReadULEB128();
+                var hash = ((hi << 32) | lo) & 0xFFFFFFFFFFFFFFF;
+                if (Decompiler.HashEntries.ContainsKey(hash))
+                    return new LuaJitConstant(Decompiler.HashEntries[hash]);
+                return new LuaJitConstant(hash);
             }
             if (type == 3)
                 return new LuaJitConstant(Reader.ReadLEB128());

@@ -5,8 +5,6 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
 {
     public class Constant : IExpression
     {
-        private static readonly StringBuilder constStringBuilder = new StringBuilder();
-
         public ValueType Type { get; set; }
         public double Number { get; set; }
         public string String { get; set; }
@@ -24,6 +22,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
 
         public Constant(string str, int id)
         {
+            StringBuilder constStringBuilder = new StringBuilder();
             Type = ValueType.String;
             for (int i = 0; i != str.Length; i++)
             {
@@ -41,7 +40,6 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
                 });
             }
             String = constStringBuilder.ToString();
-            constStringBuilder.Length = 0;
             Id = id;
         }
 
@@ -63,6 +61,11 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         {
             Type = typ;
             Id = id;
+        }
+
+        public bool StringHasIllegalCharacter()
+        {
+            return String.Contains("<") || String.Contains(">") || String.Contains("\"");
         }
         
         public override string ToString()

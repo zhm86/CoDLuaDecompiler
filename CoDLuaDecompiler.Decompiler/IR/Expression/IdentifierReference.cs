@@ -128,7 +128,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
             string ret = Identifier.ToString();
             foreach (var idx in TableIndices)
             {
-                if (idx is Constant {Type: ValueType.String} c)
+                if (idx is Constant {Type: ValueType.String} c && !c.StringHasIllegalCharacter())
                 {
                     ret += "." + c.String;
                 }
