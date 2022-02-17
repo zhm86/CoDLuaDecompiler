@@ -61,7 +61,9 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
 
                 new UnnecessaryReturnsAnalyzer(),
 
-                new ConvertToASTAnalyzer(),
+                new ConvertToASTAnalyzer(),    
+                new AndOperatorAnalyzer(),
+
             };
         }
     }

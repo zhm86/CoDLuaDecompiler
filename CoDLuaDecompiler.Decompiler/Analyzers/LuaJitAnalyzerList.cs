@@ -26,11 +26,11 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
                 new TestsetAnalyzer(),
                 new OrAndOperatorAnalyzer(),
                 new TernaryOperatorAnalyzer(),
-                new ConstructCfgAnalyzer(),
+                new LuaJitConstructCfgAnalyzer(),
                 new LuaJitIndeterminateArgumentsAnalyzer(),
                 new Lua51LoopsAnalyzer(),
                 
-                new ConvertToSsaAnalyzer(),
+                new LuaJitConvertToSsaAnalyzer(),
                 // Data flow passes
                 new DeadAssignmentsAnalyzer(),
                 new UnusedPhiFunctionsAnalyzer(),
@@ -60,7 +60,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
 
                 new UnnecessaryReturnsAnalyzer(),
 
-                new ConvertToASTAnalyzer(),
+                new LuaJitConvertToASTAnalyzer(),
             };
         }
     }

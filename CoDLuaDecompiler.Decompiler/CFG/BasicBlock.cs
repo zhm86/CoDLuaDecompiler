@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CoDLuaDecompiler.Decompiler.IR.Functions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
 
@@ -7,8 +8,8 @@ namespace CoDLuaDecompiler.Decompiler.CFG
 {
     public class BasicBlock
     {
-        public static int IdCounter { get; set; } = 0;
         public int Id { get; set; }
+        public Function Function { get; set; }
 
         public List<IInstruction> Instructions { get; set; } = new List<IInstruction>();
         public List<BasicBlock> Predecessors { get; set; } = new List<BasicBlock>();
@@ -65,9 +66,10 @@ namespace CoDLuaDecompiler.Decompiler.CFG
         public bool IsInfiniteLoop { get; set; } = false;
         public bool IsCodeGenerated { get; set; } = false;
 
-        public BasicBlock()
+        public BasicBlock(Function function)
         {
-            Id = IdCounter++;
+            Function = function;
+            Id = function.BlockIdCounter++;
         }
         
         public void MarkCodegenerated(int id)
@@ -139,6 +141,22 @@ namespace CoDLuaDecompiler.Decompiler.CFG
         
         public string PrintBlock(int indentLevel, bool infLoopPrint = false)
         {
+            // TODO: Figure out why it can cause an infinite loop
+            if (!Function.printedBlocks.ContainsKey(this))
+            {
+                Function.printedBlocks.Add(this, 1);
+            }
+            else
+            {
+                Function.printedBlocks[this]++;
+                if (Function.printedBlocks[this] > 5)
+                {
+#if DEBUG
+                    Console.WriteLine("Warning: Infinite loop detected in block " + Id);
+#endif
+                    return "-- ERROR: Infinite loop detected";
+                }
+            }
             string ret = "";
             int count = (IsInfiniteLoop && !infLoopPrint) ? 1 : Instructions.Count;
             int begin = (IsInfiniteLoop && infLoopPrint) ? 1 : 0;

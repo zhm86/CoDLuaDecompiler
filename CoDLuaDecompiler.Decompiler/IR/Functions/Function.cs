@@ -5,6 +5,7 @@ using CoDLuaDecompiler.Decompiler.CFG;
 using CoDLuaDecompiler.Decompiler.Extensions;
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using CoDLuaDecompiler.Decompiler.IR.Instruction;
+using CoDLuaDecompiler.Decompiler.LuaFile;
 using CoDLuaDecompiler.Decompiler.LuaFile.Havok.Debug;
 using CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaFunction.Structures;
 
@@ -14,6 +15,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
     {
         public int Id { get; set; }
         public SymbolTable SymbolTable { get; set; }
+        public ILuaFile LuaFile { get; set; }
         public List<Identifier> Parameters { get; set; }
         public Function Parent { get; set; }
         public List<Function> Closures { get; set; }
@@ -34,6 +36,11 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
         /// List of all the blocks for some analyses
         /// </summary>
         public List<BasicBlock> Blocks { get; set; } = new List<BasicBlock>();
+        /// <summary>
+        /// Counter for the block id's
+        /// </summary>
+        public int BlockIdCounter { get; set; } = 0;
+        public Dictionary<BasicBlock, int> printedBlocks = new Dictionary<BasicBlock, int>();
 
         /// <summary>
         /// Identifiers that are used in more than one basic block
@@ -53,16 +60,17 @@ namespace CoDLuaDecompiler.Decompiler.IR.Functions
 
         public FunctionDebugInfo FunctionDebugInfo { get; set; }
 
-        public Function(SymbolTable symbolTable)
+        public Function(SymbolTable symbolTable, ILuaFile luaFile)
         {
             SymbolTable = symbolTable;
+            LuaFile = luaFile;
             Parameters = new List<Identifier>();
             Closures = new List<Function>();
             Instructions = new List<IInstruction>();
             Labels = new Dictionary<uint, Label>();
         }
 
-        public Function(Function parent, SymbolTable symbolTable) : this(symbolTable)
+        public Function(Function parent, SymbolTable symbolTable, ILuaFile luaFile) : this(symbolTable, luaFile)
         {
             Parent = parent;
         }

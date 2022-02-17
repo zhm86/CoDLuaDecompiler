@@ -10,7 +10,7 @@ using CoDLuaDecompiler.Decompiler.IR.Instruction;
 
 namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
 {
-    public class ConvertToASTAnalyzer : IAnalyzer
+    public class LuaJitConvertToASTAnalyzer : IAnalyzer
     {
         public void Analyze(Function f)
         {

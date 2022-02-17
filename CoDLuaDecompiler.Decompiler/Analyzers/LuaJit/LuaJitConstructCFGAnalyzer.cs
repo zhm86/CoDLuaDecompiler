@@ -7,7 +7,7 @@ using CoDLuaDecompiler.Decompiler.IR.Instruction;
 
 namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
 {
-    public class ConstructCfgAnalyzer : IAnalyzer
+    public class LuaJitConstructCfgAnalyzer : IAnalyzer
     {
         public void Analyze(Function f)
         {
@@ -158,7 +158,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     {
                         var curr = f.Blocks[b];
                         var succ = f.Blocks[b].Successors[0];
-                        if (f.Blocks[b].Instructions.Last() is Jump)
+                        if (f.Blocks[b].Instructions.Any() && f.Blocks[b].Instructions.Last() is Jump)
                         {
                             curr.Instructions.RemoveAt(curr.Instructions.Count() - 1);
                         }

@@ -72,7 +72,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
             string left;
             if (Left is Constant {Type: ValueType.VarArgs})
                 return Right.ToString();
-            if (Left is Constant c && c.String != null)
+            if (Left is Constant c && c.String != null && !c.StringHasIllegalCharacter())
                 left = Left.ToString()?.Replace("\"", "");
             else
                 left = $"[{Left}]";

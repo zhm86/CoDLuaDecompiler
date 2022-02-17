@@ -28,6 +28,10 @@ namespace CoDLuaDecompiler.CLI
                 // parse lua file
                 var file = LuaFileFactory.Create(filePath, UsesDebugInfo);
 
+#if DEBUG
+                Console.WriteLine($"Decompiling file: {filePath}");
+#endif
+
                 // decompile file
                 var output = _decompiler.Decompile(file);
 
@@ -41,6 +45,7 @@ namespace CoDLuaDecompiler.CLI
             }
             catch (Exception e)
             {
+                Console.WriteLine($"Error while decompiling file: {filePath}");
                 Console.WriteLine(e);
             }
         }
@@ -100,7 +105,11 @@ namespace CoDLuaDecompiler.CLI
             
             Console.WriteLine($"Total of {files.Count} to process.");
 
+#if DEBUG
+            files.ForEach(HandleFile);
+#else
             Parallel.ForEach(files, HandleFile);
+#endif
         }
     }
 }

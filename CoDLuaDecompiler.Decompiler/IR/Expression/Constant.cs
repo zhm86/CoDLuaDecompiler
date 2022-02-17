@@ -1,5 +1,6 @@
 using CoDLuaDecompiler.Decompiler.IR.Identifiers;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CoDLuaDecompiler.Decompiler.IR.Expression
 {
@@ -63,9 +64,14 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
             Id = id;
         }
 
+        /// <summary>
+        /// Checks whether this constant uses characters that are only allowed inside double brackets
+        /// </summary>
+        /// <returns></returns>
         public bool StringHasIllegalCharacter()
         {
-            return String.Contains("<") || String.Contains(">") || String.Contains("\"");
+            return Type != ValueType.String || String == null || String == "" && String.Contains("<") || String.Contains(">") || String.Contains("\"") || 
+                   String.Contains(".") || String.Contains(" ") || Regex.IsMatch(String, @"^\d+") || String == "return";
         }
         
         public override string ToString()

@@ -6,7 +6,7 @@ using CoDLuaDecompiler.Decompiler.IR.Instruction;
 
 namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
 {
-    public class ConvertToSsaAnalyzer : IAnalyzer
+    public class LuaJitConvertToSsaAnalyzer : IAnalyzer
     {
         public void Analyze(Function f)
         {
@@ -187,7 +187,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     foreach (var p in f.Blocks[i].Predecessors)
                     {
                         var runner = p;
-                        while (runner != f.Blocks[i].ImmediateDominator)
+                        while (runner != null && runner != f.Blocks[i].ImmediateDominator && runner.DominanceFrontier != null)
                         {
                             runner.DominanceFrontier.UnionWith(new[] { f.Blocks[i] });
                             runner = runner.ImmediateDominator;
