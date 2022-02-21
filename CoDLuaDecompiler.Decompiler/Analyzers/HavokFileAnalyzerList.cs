@@ -13,6 +13,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
                 new PrePostLoadFuncAnalyzer(),
                 new PostRequireStatementsNewLine(),
                 new UIModelFunctionValueVarNamesAnalyzer(),
+                new ClipsPerStateNamingAnalyzer()
                 //new DebugLineInfoAnalyzer(),
             };
         }
