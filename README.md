@@ -21,7 +21,7 @@ This is made from Katalash's DSLuaDecompiler and this wouldn't be possible witho
 
 - To decompile a couple/a single file(s) just drop it on the .exe
 - To decompile whole folders open the program with the path as a parameter
-- To decompile from a running game's memory, add **--export** as a parameter (Currently only Black Ops 3, 4, Cold War, Modern Warfare and Vanguard are supported)
+- To decompile from a running game's memory, add **--export** as a parameter (Currently only Black Ops 3, 4, Cold War, World War 2, Modern Warfare and Vanguard are supported)
 
 ## Download
 

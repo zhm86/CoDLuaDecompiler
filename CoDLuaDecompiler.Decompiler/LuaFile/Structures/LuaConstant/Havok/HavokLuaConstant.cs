@@ -40,6 +40,10 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.Havok
                     break;
                 case HavokConstantType.TNil:
                     break;
+                case HavokConstantType.TUI64:
+                    Type = HavokConstantType.THash;
+                    HashValue = ReadHash();
+                    break;
                 case HavokConstantType.TLightUserData:
                 case HavokConstantType.TTable:
                 case HavokConstantType.TFunction:
@@ -47,7 +51,6 @@ namespace CoDLuaDecompiler.Decompiler.LuaFile.Structures.LuaConstant.Havok
                 case HavokConstantType.TThread:
                 case HavokConstantType.TIFunction:
                 case HavokConstantType.TCFunction:
-                case HavokConstantType.TUI64:
                 case HavokConstantType.TStruct:
                 case HavokConstantType.TUnk:
                     throw new NotImplementedException();
