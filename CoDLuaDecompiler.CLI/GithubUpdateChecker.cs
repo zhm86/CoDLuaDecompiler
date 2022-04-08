@@ -7,7 +7,7 @@ namespace CoDLuaDecompiler.CLI
 {
     public class GithubUpdateChecker
     {
-        private const string Version = "2.4.1";
+        private const string Version = "2.4.2";
         private const string RepositoryOwner = "JariKCoding";
         private const string RepositoryName = "CoDLuaDecompiler";
 

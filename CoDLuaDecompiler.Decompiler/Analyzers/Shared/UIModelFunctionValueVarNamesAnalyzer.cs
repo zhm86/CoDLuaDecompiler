@@ -77,12 +77,22 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Shared
                     {
                         if (fc.Function.ToString().EndsWith("subscribeToGlobalModel") && fc.Arguments.Count >= 4 && fc.Arguments[^2] is Constant co && co.Type == ValueType.String)
                         {
-                            a2.Left[0].Identifier.Name = ToCamelCase(co.String.Replace(".", "_"));
+                            var variableName = ToCamelCase(co.String.Replace(".", "_"));
+                            if (c.Function.UpvalueBindings.Exists(ub => ub.Name == variableName))
+                            {
+                                variableName = "_" + variableName;
+                            }
+                            a2.Left[0].Identifier.Name = variableName;
                         }
                         
                         if (fc.Function.ToString().EndsWith("linkToElementModel") && fc.Arguments.Count >= 4 && fc.Arguments[^3] is Constant co2 && co2.Type == ValueType.String)
                         {
-                            a2.Left[0].Identifier.Name = ToCamelCase(co2.String.Replace(".", "_"));
+                            var variableName = ToCamelCase(co2.String.Replace(".", "_"));
+                            if (c.Function.UpvalueBindings.Exists(ub => ub.Name == variableName))
+                            {
+                                variableName = "_" + variableName;
+                            }
+                            a2.Left[0].Identifier.Name = variableName;
                         }
                     }
                 }

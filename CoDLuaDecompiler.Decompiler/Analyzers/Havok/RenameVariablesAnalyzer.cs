@@ -129,7 +129,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         {
                             if (arg is Closure c)
                             {
-                                c.Function.ArgumentNames = new List<Local>(){new Local(){Name = "modelRef"}};
+                                c.Function.ArgumentNames = new List<Local>(){new Local(){Name = "model"}};
                             }
                         }
                     }
