@@ -327,7 +327,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                         }
                         
                         // Add the iterator instruction at the end
-                        if (node.LoopLatches.Count == 1)
+                        if (node.LoopLatches.Count == 1 && a5.Left.Count == 1)
                         {
                             node.LoopLatches[0].Instructions.Add(new Assignment(new IdentifierReference(a5.Left[0].Identifier), a5.Right));
                         }
