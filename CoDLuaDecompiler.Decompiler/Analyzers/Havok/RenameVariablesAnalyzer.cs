@@ -157,6 +157,19 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                             c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}, new Local(){Name = "controller"}};
                         }
                     }
+                    
+                    if (i is Assignment {Right: FunctionCall fc8} && fc8.Function.ToString().EndsWith("AddButtonCallbackFunction"))
+                    {
+                        if (fc8.Arguments.Count >= 5 && fc8.Arguments[4] is Closure c)
+                        {
+                            c.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}, new Local(){Name = "menu"}, new Local(){Name = "controller"}, new Local(){Name = "model"}};
+                        }
+                        
+                        if (fc8.Arguments.Count >= 6 && fc8.Arguments[5] is Closure c2)
+                        {
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}, new Local(){Name = "menu"}, new Local(){Name = "controller"}};
+                        }
+                    }
                 }
             }
             if (f.Blocks[0] != null && f.Blocks[0].Instructions.Count > 0 && f.Blocks[0].Instructions[0] is Assignment

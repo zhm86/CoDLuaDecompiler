@@ -30,8 +30,8 @@ namespace CoDLuaDecompiler.AssetExporter
             { "BlackOps3",      new Tuple<IGame, bool>(new BlackOps3(),    true) },
             { "BlackOps4",      new Tuple<IGame, bool>(new BlackOps4(),    true) },
             { "BlackOpsColdWar",      new Tuple<IGame, bool>(new BlackOpsColdWar(),    true) },
-            { "ModernWarfare",      new Tuple<IGame, bool>(new ModernWarfare(),    true) },
-            { "Vanguard",      new Tuple<IGame, bool>(new Vanguard(),    true) },
+            //{ "ModernWarfare",      new Tuple<IGame, bool>(new ModernWarfare(),    true) },
+            //{ "Vanguard",      new Tuple<IGame, bool>(new Vanguard(),    true) },
             { "s2_mp64_ship",      new Tuple<IGame, bool>(new WW2(),    true) },
             { "s2_sp64_ship",      new Tuple<IGame, bool>(new WW2(),    true) },
         };

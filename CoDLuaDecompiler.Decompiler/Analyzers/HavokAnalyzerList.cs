@@ -47,6 +47,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
                 new ExpressionPropagationAnalyzer(),
                 new LivenessNoInterferenceAnalyzer(),
                 new MultipleReturnsOrderAnalyzer(),
+                
 
                 //new LoopIdentifierReplacementAnalyzer(),
                 // Convert out of SSA and rename variables
@@ -54,6 +55,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
                 new LocalDeclarationsAnalyzer(),
 
                 new RenameVariablesAnalyzer(),
+                new LUIFixesAnalyzer(),
                 new ParenthesizeAnalyzer(),
                 new WidgetEmptyLinesAnalyzer(),
                 new InlineClosuresAnalyzer(),
