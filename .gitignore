@@ -43,6 +43,7 @@
 *.ide-wal
 *.config
 .idea
+.vs
 Properties/launchSettings.json
 
 #Package Index
