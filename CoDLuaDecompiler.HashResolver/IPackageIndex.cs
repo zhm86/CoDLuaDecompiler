@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
 
-namespace CoDLuaDecompiler.HashResolver
+namespace CoDLuaDecompiler.HashResolver;
+
+public interface IPackageIndex
 {
-    public interface IPackageIndex
-    {
-        void Load();
-        Dictionary<ulong, string> GetEntries();
-    }
+    void Load();
+    Dictionary<ulong, string> GetEntries();
 }

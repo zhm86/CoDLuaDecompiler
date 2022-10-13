@@ -7,109 +7,108 @@ using CoDLuaDecompiler.AssetExporter;
 using CoDLuaDecompiler.Decompiler;
 using CoDLuaDecompiler.Decompiler.LuaFile;
 
-namespace CoDLuaDecompiler.CLI
+namespace CoDLuaDecompiler.CLI;
+
+class Program
 {
-    class Program
+    private readonly IAssetExport _assetExport;
+    private readonly IDecompiler _decompiler;
+    public static bool UsesDebugInfo = false;
+
+    public Program(IDecompiler decompiler, IAssetExport assetExport)
     {
-        private readonly IAssetExport _assetExport;
-        private readonly IDecompiler _decompiler;
-        public static bool UsesDebugInfo = false;
+        _decompiler = decompiler;
+        _assetExport = assetExport;
+    }
 
-        public Program(IDecompiler decompiler, IAssetExport assetExport)
+    private void HandleFile(string filePath)
+    {
+        try
         {
-            _decompiler = decompiler;
-            _assetExport = assetExport;
-        }
-
-        private void HandleFile(string filePath)
-        {
-            try
-            {
-                // parse lua file
-                var file = LuaFileFactory.Create(filePath, UsesDebugInfo);
+            // parse lua file
+            var file = LuaFileFactory.Create(filePath, UsesDebugInfo);
 
 #if DEBUG
-                Console.WriteLine($"Decompiling file: {filePath}");
+            Console.WriteLine($"Decompiling file: {filePath}");
 #endif
 
-                // decompile file
-                var output = _decompiler.Decompile(file);
+            // decompile file
+            var output = _decompiler.Decompile(file);
 
-                // replace extension
-                var outFileName = Path.ChangeExtension(filePath, ".dec.lua");
+            // replace extension
+            var outFileName = Path.ChangeExtension(filePath, ".dec.lua");
 
-                // save output
-                File.WriteAllText(outFileName, output);
-                
-                Console.WriteLine($"Decompiled file: {filePath}");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error while decompiling file: {filePath}");
-                Console.WriteLine(e);
-            }
-        }
-        private static List<string> ParseFilesFromArgs(IEnumerable<string> args)
-        {
-            var files = new List<string>();
-
-            string luaExtension = "*.lua*";
-            if (args.Contains("--debug"))
-            {
-                UsesDebugInfo = true;
-                luaExtension = "*.luac";
-            }
-
-            foreach (var arg in args)
-            {
-                if (!File.Exists(arg) && !Directory.Exists(arg))
-                    continue;
-                
-                var attr = File.GetAttributes(arg);
-                // determine if we're a directory first
-                // if so only includes file that are of ".lua" or ".luac" extension
-                if (attr.HasFlag(FileAttributes.Directory))
-                {
-                    files.AddRange(Directory.GetFiles(arg, luaExtension, SearchOption.AllDirectories).ToList());
-                }
-                else if (Path.GetExtension(arg).Contains(".lua"))
-                {
-                    files.Add(arg);
-                }
-                else
-                {
-                    Console.WriteLine($"Invalid argument passed {arg} | {File.GetAttributes(arg)}!");
-                }
-            }
+            // save output
+            File.WriteAllText(outFileName, output);
             
-            // make sure to remove duplicates
-            files = files.Distinct().ToList();
+            Console.WriteLine($"Decompiled file: {filePath}");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error while decompiling file: {filePath}");
+            Console.WriteLine(e);
+        }
+    }
+    private static List<string> ParseFilesFromArgs(IEnumerable<string> args)
+    {
+        var files = new List<string>();
 
-            // also remove any already dumped files
-            files.RemoveAll(elem => elem.EndsWith(".dec.lua"));
-            files.RemoveAll(elem => elem.EndsWith(".luadec"));
+        string luaExtension = "*.lua*";
+        if (args.Contains("--debug"))
+        {
+            UsesDebugInfo = true;
+            luaExtension = "*.luac";
+        }
 
-            return files;
+        foreach (var arg in args)
+        {
+            if (!File.Exists(arg) && !Directory.Exists(arg))
+                continue;
+            
+            var attr = File.GetAttributes(arg);
+            // determine if we're a directory first
+            // if so only includes file that are of ".lua" or ".luac" extension
+            if (attr.HasFlag(FileAttributes.Directory))
+            {
+                files.AddRange(Directory.GetFiles(arg, luaExtension, SearchOption.AllDirectories).ToList());
+            }
+            else if (Path.GetExtension(arg).Contains(".lua"))
+            {
+                files.Add(arg);
+            }
+            else
+            {
+                Console.WriteLine($"Invalid argument passed {arg} | {File.GetAttributes(arg)}!");
+            }
         }
         
-        public void Main(string[] args)
+        // make sure to remove duplicates
+        files = files.Distinct().ToList();
+
+        // also remove any already dumped files
+        files.RemoveAll(elem => elem.EndsWith(".dec.lua"));
+        files.RemoveAll(elem => elem.EndsWith(".luadec"));
+
+        return files;
+    }
+    
+    public void Main(string[] args)
+    {
+        if (args.Contains("--export"))
         {
-            if (args.Contains("--export"))
-            {
-                Console.WriteLine("Starting asset export from memory.");
-                _assetExport.ExportAssets(args.Contains("--dump"));
-            }
-            
-            // parse files from arguments
-            var files = ParseFilesFromArgs(args);
-            
-            Console.WriteLine($"Total of {files.Count} to process.");
+            Console.WriteLine("Starting asset export from memory.");
+            _assetExport.ExportAssets(args.Contains("--dump"));
+        }
+        
+        // parse files from arguments
+        var files = ParseFilesFromArgs(args);
+        
+        Console.WriteLine($"Total of {files.Count} to process.");
 
 #if DEBUG
-            files.ForEach(HandleFile);
+        files.ForEach(HandleFile);
 #else
-            Parallel.ForEach(files, HandleFile);
+        Parallel.ForEach(files, HandleFile);
 #endif
-        }
     }
 }

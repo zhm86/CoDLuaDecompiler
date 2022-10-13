@@ -75,7 +75,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Shared
                         c.Function.Blocks.Any() && c.Function.Blocks[0].Instructions.Any() && c.Function.Blocks[0].Instructions[0] is Assignment a2 && 
                         a2.Right is FunctionCall fc2 && fc2.Function.ToString() == "Engine.GetModelValue" && a2.Left.Count == 1)
                     {
-                        if (fc.Function.ToString().EndsWith("subscribeToGlobalModel") && fc.Arguments.Count >= 4 && fc.Arguments[^2] is Constant co && co.Type == ValueType.String)
+                        if (fc.Function.ToString().EndsWith("subscribeToGlobalModel") && fc.Arguments.Count >= 4 && fc.Arguments[^2] is Constant co && co.Type == IR.Identifiers.ValueType.String)
                         {
                             var variableName = ToCamelCase(co.String.Replace(".", "_"));
                             if (c.Function.UpvalueBindings.Exists(ub => ub.Name == variableName))
@@ -85,7 +85,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Shared
                             a2.Left[0].Identifier.Name = variableName;
                         }
                         
-                        if (fc.Function.ToString().EndsWith("linkToElementModel") && fc.Arguments.Count >= 4 && fc.Arguments[^3] is Constant co2 && co2.Type == ValueType.String)
+                        if (fc.Function.ToString().EndsWith("linkToElementModel") && fc.Arguments.Count >= 4 && fc.Arguments[^3] is Constant co2 && co2.Type == IR.Identifiers.ValueType.String)
                         {
                             var variableName = ToCamelCase(co2.String.Replace(".", "_"));
                             if (c.Function.UpvalueBindings.Exists(ub => ub.Name == variableName))

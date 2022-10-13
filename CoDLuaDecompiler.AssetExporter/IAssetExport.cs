@@ -1,7 +1,6 @@
-﻿namespace CoDLuaDecompiler.AssetExporter
+﻿namespace CoDLuaDecompiler.AssetExporter;
+
+public interface IAssetExport
 {
-    public interface IAssetExport
-    {
-        void ExportAssets(bool dumpRaw = false);
-    }
+    void ExportAssets(bool dumpRaw = false);
 }

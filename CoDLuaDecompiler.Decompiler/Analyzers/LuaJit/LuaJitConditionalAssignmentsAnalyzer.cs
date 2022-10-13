@@ -13,10 +13,10 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.LuaJit
             for (int i = 0; i < f.Instructions.Count - 6; i++)
             {
                 if (f.Instructions[i] is Jump {Conditional: true} j1 &&
-                    f.Instructions[i + 1] is Assignment a1 && a1.Left.Count == 1 && a1.Left[0] is { } ir1 && a1.Right is Constant {Type: ValueType.Boolean} c1 &&
+                    f.Instructions[i + 1] is Assignment a1 && a1.Left.Count == 1 && a1.Left[0] is { } ir1 && a1.Right is Constant {Type: IR.Identifiers.ValueType.Boolean} c1 &&
                     f.Instructions[i + 2] is Jump {Conditional: false} j2 && 
                     f.Instructions[i + 3] is Label l1 && l1 == j1.Dest && l1.UsageCount == 1 &&
-                    f.Instructions[i + 4] is Assignment a2 && a2.Left.Count == 1 && a1.Left[0] is { } ir2 && a2.Right is Constant {Type: ValueType.Boolean} c2 &&
+                    f.Instructions[i + 4] is Assignment a2 && a2.Left.Count == 1 && a1.Left[0] is { } ir2 && a2.Right is Constant {Type: IR.Identifiers.ValueType.Boolean} c2 &&
                     ir1.Identifier == ir2.Identifier &&
                     f.Instructions[i + 5] is Label label2 && label2 == j2.Dest
                 )

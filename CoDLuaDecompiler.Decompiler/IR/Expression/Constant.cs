@@ -6,7 +6,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
 {
     public class Constant : IExpression
     {
-        public ValueType Type { get; set; }
+        public Identifiers.ValueType Type { get; set; }
         public double Number { get; set; }
         public string String { get; set; }
         public bool Boolean { get; set; }
@@ -16,7 +16,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         
         public Constant(double num, int id)
         {
-            Type = ValueType.Number;
+            Type = Identifiers.ValueType.Number;
             Number = num;
             Id = id;
         }
@@ -24,7 +24,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         public Constant(string str, int id)
         {
             StringBuilder constStringBuilder = new StringBuilder();
-            Type = ValueType.String;
+            Type = Identifiers.ValueType.String;
             for (int i = 0; i != str.Length; i++)
             {
                 constStringBuilder.Append(str[i] switch
@@ -46,19 +46,19 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
 
         public Constant(bool b, int id)
         {
-            Type = ValueType.Boolean;
+            Type = Identifiers.ValueType.Boolean;
             Boolean = b;
             Id = id;
         }
 
         public Constant(ulong h, int id)
         {
-            Type = ValueType.Hash;
+            Type = Identifiers.ValueType.Hash;
             Hash = h;
             Id = id;
         }
 
-        public Constant(ValueType typ, int id)
+        public Constant(Identifiers.ValueType typ, int id)
         {
             Type = typ;
             Id = id;
@@ -70,7 +70,7 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         /// <returns></returns>
         public bool StringHasIllegalCharacter()
         {
-            return Type != ValueType.String || String == null || String == "" && String.Contains("<") || String.Contains(">") || String.Contains("\"") || 
+            return Type != Identifiers.ValueType.String || String == null || String == "" && String.Contains("<") || String.Contains(">") || String.Contains("\"") || 
                    String.Contains(".") || String.Contains(" ") || Regex.IsMatch(String, @"^\d+") || String == "return";
         }
         
@@ -78,19 +78,19 @@ namespace CoDLuaDecompiler.Decompiler.IR.Expression
         {
             switch (Type)
             {
-                case ValueType.Number:
+                case Identifiers.ValueType.Number:
                     return Number.ToString();
-                case ValueType.String:
+                case Identifiers.ValueType.String:
                     return "\"" + String + "\"";
-                case ValueType.Boolean:
+                case Identifiers.ValueType.Boolean:
                     return Boolean ? "true" : "false";
-                case ValueType.Hash:
+                case Identifiers.ValueType.Hash:
                     return $"0x{Hash & 0xFFFFFFFFFFFFFFF:X}";
-                case ValueType.Table:
+                case Identifiers.ValueType.Table:
                     return "{}";
-                case ValueType.VarArgs:
+                case Identifiers.ValueType.VarArgs:
                     return "...";
-                case ValueType.Nil:
+                case Identifiers.ValueType.Nil:
                     return "nil";
             }
             return "";

@@ -2,11 +2,14 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <RootNamespace>CoDLuaDecompiler.CLI</RootNamespace>
         <PublishSingleFile>true</PublishSingleFile>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <PlatformTarget>x64</PlatformTarget>
+      
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
 
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 
@@ -15,12 +18,13 @@
 
     <ItemGroup>
       <ProjectReference Include="..\CoDLuaDecompiler.AssetExporter\CoDLuaDecompiler.AssetExporter.csproj" />
+      <ProjectReference Include="..\CoDLuaDecompiler.Common\CoDLuaDecompiler.Common.csproj" />
       <ProjectReference Include="..\CoDLuaDecompiler.Decompiler\CoDLuaDecompiler.Decompiler.csproj" />
       <ProjectReference Include="..\CoDLuaDecompiler.HashResolver\CoDLuaDecompiler.HashResolver.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Autofac" Version="6.2.0" />
+      <PackageReference Include="Autofac" Version="6.4.0" />
       <PackageReference Include="GitHubUpdate" Version="1.2.0" />
     </ItemGroup>
 
