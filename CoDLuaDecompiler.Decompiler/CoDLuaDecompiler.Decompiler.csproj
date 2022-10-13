@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\CoDLuaDecompiler.Common\CoDLuaDecompiler.Common.csproj" />
       <ProjectReference Include="..\CoDLuaDecompiler.HashResolver\CoDLuaDecompiler.HashResolver.csproj" />
     </ItemGroup>
 
