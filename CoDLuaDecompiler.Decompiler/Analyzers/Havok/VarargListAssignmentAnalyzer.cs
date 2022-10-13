@@ -19,7 +19,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                 } a3)
                 {
                     var idRef = new IdentifierReference(a3.Left[0].Identifier);
-                    idRef.TableIndices.Add(new Constant(ValueType.VarArgs, -1));
+                    idRef.TableIndices.Add(new Constant(IR.Identifiers.ValueType.VarArgs, -1));
                     var assn = new Assignment(idRef, new IdentifierReference(f.SymbolTable.GetVarargs()));
                     assn.LocalAssignments = a3.LocalAssignments;
                     f.Instructions[i] = assn;

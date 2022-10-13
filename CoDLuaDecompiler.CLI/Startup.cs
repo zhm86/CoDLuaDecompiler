@@ -7,41 +7,40 @@ using CoDLuaDecompiler.Decompiler;
 using CoDLuaDecompiler.Decompiler.LuaFile;
 using CoDLuaDecompiler.HashResolver;
 
-namespace CoDLuaDecompiler.CLI
+namespace CoDLuaDecompiler.CLI;
+
+public class Startup
 {
-    public class Startup
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
+        Console.WriteLine("CoD Lua Decompiler");
+
+        // setup dependency injection
+        var builder = new ContainerBuilder();
+
+        // CoDHavokTool.Common
+        builder.Register((context, parameters) =>
         {
-            Console.WriteLine("CoD Lua Decompiler");
+            if (parameters.Count() != 1) throw new ArgumentOutOfRangeException();
 
-            // setup dependency injection
-            var builder = new ContainerBuilder();
+            return LuaFileFactory.Create(parameters.Positional<string>(0));
+        }).As<ILuaFile>().InstancePerLifetimeScope();
 
-            // CoDHavokTool.Common
-            builder.Register((context, parameters) =>
-            {
-                if (parameters.Count() != 1) throw new ArgumentOutOfRangeException();
+        // CoDHavokTool.LuaDecompiler
+        builder.RegisterType<Decompiler.Decompiler>().As<IDecompiler>().SingleInstance();
 
-                return LuaFileFactory.Create(parameters.Positional<string>(0));
-            }).As<ILuaFile>().InstancePerLifetimeScope();
+        // CodHavokTool
+        builder.RegisterType<GithubUpdateChecker>().SingleInstance();
+        builder.RegisterType<AssetExport>().As<IAssetExport>().SingleInstance();
+        builder.RegisterType<PackageIndex>().As<IPackageIndex>().SingleInstance();
+        builder.RegisterType<Program>().SingleInstance();
 
-            // CoDHavokTool.LuaDecompiler
-            builder.RegisterType<Decompiler.Decompiler>().As<IDecompiler>().SingleInstance();
+        var container = builder.Build();
+        var updateTask = container.Resolve<GithubUpdateChecker>().CheckForUpdate();
+        container.Resolve<Program>().Main(args);
+        await updateTask;
 
-            // CodHavokTool
-            builder.RegisterType<GithubUpdateChecker>().SingleInstance();
-            builder.RegisterType<AssetExport>().As<IAssetExport>().SingleInstance();
-            builder.RegisterType<PackageIndex>().As<IPackageIndex>().SingleInstance();
-            builder.RegisterType<Program>().SingleInstance();
-
-            var container = builder.Build();
-            var updateTask = container.Resolve<GithubUpdateChecker>().CheckForUpdate();
-            container.Resolve<Program>().Main(args);
-            await updateTask;
-
-            Console.WriteLine("Press enter to exit");
-            Console.ReadLine();
-        }
+        Console.WriteLine("Press enter to exit");
+        Console.ReadLine();
     }
 }

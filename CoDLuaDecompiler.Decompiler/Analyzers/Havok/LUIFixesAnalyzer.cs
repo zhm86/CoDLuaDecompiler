@@ -39,7 +39,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     var instr = b.Instructions[i];
                     if (instr is Assignment a && a.Left.Count == 1 && a.Right is IdentifierReference ir &&
                         b.Instructions[i + 1] is Assignment a2 && a2.Left.Count == 1 && a2.Left[0].HasIndex && a2.Left[0].Identifier == ir.Identifier && 
-                        a2.Left[0].TableIndices.Count == 1 && a2.Left[0].TableIndices[0] is Constant c && c.Type == ValueType.String && c.String == "anyChildUsesUpdateState" && a2.Right is Constant)
+                        a2.Left[0].TableIndices.Count == 1 && a2.Left[0].TableIndices[0] is Constant c && c.Type == IR.Identifiers.ValueType.String && c.String == "anyChildUsesUpdateState" && a2.Right is Constant)
                     {
                         a.Left[0].Identifier.Name = "self";
                         b.Instructions.RemoveAt(i);

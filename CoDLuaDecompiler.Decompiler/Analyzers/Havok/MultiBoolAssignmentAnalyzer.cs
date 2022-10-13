@@ -13,9 +13,9 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
             for (int i = 0; i < f.Instructions.Count - 2; i++)
             {
                 if (f.Instructions[i] is Assignment a1 && a1.Left.Any() && !a1.Left[0].HasIndex &&
-                    a1.Right is Constant {Type: ValueType.Boolean, Boolean: false} &&
+                    a1.Right is Constant {Type: IR.Identifiers.ValueType.Boolean, Boolean: false} &&
                     f.Instructions[i + 1] is Assignment a2 && a2.Left.Any() && !a2.Left[0].HasIndex &&
-                    a2.Right is Constant {Type: ValueType.Nil})
+                    a2.Right is Constant {Type: IR.Identifiers.ValueType.Nil})
                 {
                     a1.Left.AddRange(a2.Left);
                     if (a1.LocalAssignments == null)
