@@ -27,7 +27,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                             int initIndex = il.Expressions.Count() + 1;
                             while (i + 1 < b.Instructions.Count())
                             {
-                                if (b.Instructions[i + 1] is Assignment a2 && a2.Left.Count() == 1 && a2.Left[0].Identifier == a.Left[0].Identifier && a2.Left[0].HasIndex)
+                                if (b.Instructions[i + 1] is Assignment a2 && a2.Left.Count() == 1 && a2.Left[0].Identifier == a.Left[0].Identifier && a2.Left[0].HasIndex && a2.Left[0].TableIndices.Count == 1)
                                 {
                                     if (a2.Left[0].TableIndices[0] is Constant c && Math.Abs(c.Number - initIndex) < 0.01)
                                     {

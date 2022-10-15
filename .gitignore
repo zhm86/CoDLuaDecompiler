@@ -50,3 +50,4 @@ Properties/launchSettings.json
 *.wni
 *.lua
 *.luac
+launchSettings.json
