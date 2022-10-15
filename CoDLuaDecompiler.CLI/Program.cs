@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CoDLuaDecompiler.AssetExporter;
 using CoDLuaDecompiler.Decompiler;
 using CoDLuaDecompiler.Decompiler.LuaFile;
+using CoDLuaDecompiler.Common;
 
 namespace CoDLuaDecompiler.CLI;
 
@@ -99,7 +100,12 @@ class Program
             Console.WriteLine("Starting asset export from memory.");
             _assetExport.ExportAssets(args.Contains("--dump"));
         }
-        
+
+        if (args.Contains("--functionstats") || args.Contains("-fs"))
+        {
+            AppInfo.ShowFunctionData = true;
+        }
+
         // parse files from arguments
         var files = ParseFilesFromArgs(args);
         
