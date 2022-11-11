@@ -138,7 +138,7 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     {
                         if (fc5.Arguments.Count >= 2 && fc5.Arguments[^1] is Closure c2)
                         {
-                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = "element"}, new Local(){Name = "event"}};
+                            c2.Function.ArgumentNames = new List<Local>() {new Local(){Name = fc5.Function.ToString().StartsWith("self") ? "self" : "element" }, new Local(){Name = "event"}};
                         }
                     }
                     

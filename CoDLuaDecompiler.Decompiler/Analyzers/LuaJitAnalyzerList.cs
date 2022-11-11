@@ -15,7 +15,6 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers
                 new UnneededReturnAnalyzer(),
                 
                 new VarargListAssignmentAnalyzer(),
-                new MultiBoolAssignmentAnalyzer(),
                 new RedundantAssignmentsAnalyzer(),
                 new LuaJitConditionalJumpsAnalyzer(),
                 new LuaJitConditionalAssignmentsAnalyzer(),
