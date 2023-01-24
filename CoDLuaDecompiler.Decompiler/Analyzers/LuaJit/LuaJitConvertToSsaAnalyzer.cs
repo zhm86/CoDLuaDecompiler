@@ -187,10 +187,12 @@ namespace CoDLuaDecompiler.Decompiler.Analyzers.Havok
                     foreach (var p in f.Blocks[i].Predecessors)
                     {
                         var runner = p;
-                        while (runner != null && runner != f.Blocks[i].ImmediateDominator && runner.DominanceFrontier != null)
+                        var forceShutdown = 0; // TODO: Find a proper fix for this
+                        while (runner != null && runner != f.Blocks[i].ImmediateDominator && runner.DominanceFrontier != null && runner != runner.ImmediateDominator && forceShutdown < 1000)
                         {
                             runner.DominanceFrontier.UnionWith(new[] { f.Blocks[i] });
                             runner = runner.ImmediateDominator;
+                            forceShutdown++;
                         }
                     }
                 }
